@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SDG Antigravity — Campus Sustainability Platform</title>
+  <meta name="description" content="A smart, modern platform connecting students and faculty to achieve the 17 UN Sustainable Development Goals with autonomous AI task assignment and Deep Learning milestones." />
+
+  <!-- Google Fonts & Font Awesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Bootstrap 5.3 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+
+  <!-- Site Navigation Bar -->
+  <nav class="site-navbar py-2 px-3 px-md-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <!-- Brand Logo -->
+      <a href="index.html" class="d-flex align-items-center gap-2 text-decoration-none">
+        <div class="brand-logo-icon">
+          <i class="fa-solid fa-earth-americas"></i>
+        </div>
+        <div>
+          <span class="brand-logo-text">SDG <span class="text-success">Connect</span></span>
+          
+        </div>
+      </a>
+
+      <!-- Center Quick Navigation Links -->
+      <div class="d-none d-lg-flex align-items-center gap-2">
+        <a href="index.html" class="btn btn-sm btn-link text-decoration-none text-dark fw-semibold">Home</a>
+        <a href="student-dashboard.html" class="btn btn-sm btn-link text-decoration-none text-dark fw-semibold">Student Portal</a>
+        <a href="faculty-dashboard.html" class="btn btn-sm btn-link text-decoration-none text-dark fw-semibold">Faculty Portal</a>
+      </div>
+
+      <!-- Right Auth Actions -->
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-icon-ghost" id="theme-toggle-btn" title="Toggle Dark/Light Mode">
+          <i class="fa-solid fa-moon text-secondary"></i>
+        </button>
+
+        <a href="student-login.html" class="btn btn-sm btn-outline-primary">
+          <i class="fa-solid fa-user-graduate me-1"></i> Student Login
+        </a>
+        <a href="faculty-login.html" class="btn btn-sm btn-primary">
+          <i class="fa-solid fa-chalkboard-user me-1"></i> Faculty Login
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <main class="home-view-section">
+    <section class="py-5 bg-light-subtle border-bottom">
+      <div class="container py-4">
+        <div class="row align-items-center g-5">
+          <div class="col-lg-7">
+            <span class="badge bg-success-soft text-success px-3 py-1 mb-3 fw-bold">
+              🌱 UN Sustainable Development Goals • Campus Web Platform
+            </span>
+            <h1 class="display-4 fw-extrabold mb-3 text-dark">
+              Transforming Campus Potential into <span class="text-success">Global SDG Impact</span>
+            </h1>
+            <p class="lead text-muted mb-4">
+              A smart, institutional platform where students take sustainability actions, complete <strong>Deep Learning AI projects</strong> across 4 milestones, and get guided step-by-step by an AI Mentor with multi-factor proof verification.
+            </p>
+
+            <div class="d-flex flex-wrap gap-3 mb-4">
+              <a href="student-login.html" class="btn btn-primary btn-lg px-4 py-3 fw-bold">
+                <i class="fa-solid fa-user-graduate me-2"></i> Student Portal & Sign Up
+              </a>
+              <a href="faculty-login.html" class="btn btn-outline-dark btn-lg px-4 py-3 fw-bold">
+                <i class="fa-solid fa-chalkboard-user me-2"></i> Faculty Dashboard
+              </a>
+            </div>
+
+            <div class="d-flex align-items-center gap-4 text-muted small flex-wrap">
+              <span><i class="fa-solid fa-shield-halved text-success me-1"></i> Multi-Factor Proof Verification</span>
+              <span><i class="fa-solid fa-robot text-primary me-1"></i> Autonomous AI Task Manager</span>
+              <span><i class="fa-solid fa-microchip text-info me-1"></i> Deep Learning Milestones</span>
+            </div>
+          </div>
+
+          <div class="col-lg-5">
+            <!-- Institutional Live Stats Card -->
+            <div class="card-glass p-4 shadow-lg border">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">🌱 Institutional Impact Pulse</h5>
+                <span class="badge bg-success text-white">Live Data</span>
+              </div>
+
+              <div class="row g-3 text-center my-2">
+                <div class="col-6">
+                  <div class="p-3 bg-light rounded-4 border">
+                    <h3 class="fw-bold text-success mb-0">4.2 tons</h3>
+                    <small class="text-muted">CO2 Avoided</small>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-3 bg-light rounded-4 border">
+                    <h3 class="fw-bold text-primary mb-0">1,280+</h3>
+                    <small class="text-muted">Verified Activities</small>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-3 bg-light rounded-4 border">
+                    <h3 class="fw-bold text-warning mb-0">840</h3>
+                    <small class="text-muted">Active Changemakers</small>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-3 bg-light rounded-4 border">
+                    <h3 class="fw-bold text-info mb-0">94.8%</h3>
+                    <small class="text-muted">AI Verification Accuracy</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3 p-3 bg-success-soft rounded-3 border border-success">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="fa-solid fa-bullhorn text-success fs-5"></i>
+                  <small class="text-success fw-bold">Active Campus Challenge: YOLOv8 Waste Classifier & Rooftop Solar Audit</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 17 UN Sustainable Development Goals Grid -->
+    <section class="py-5">
+      <div class="container">
+        <div class="text-center max-w-700 mx-auto mb-5">
+          <span class="badge bg-primary-soft text-primary px-3 py-1 mb-2 fw-bold">Global Framework</span>
+          <h2 class="fw-bold">Explore the 17 UN Sustainable Development Goals</h2>
+          <p class="text-muted">Click any goal card below to view its specific global vision, key targets, and actionable campus projects.</p>
+        </div>
+
+        <div class="row g-3" id="home-sdg-grid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- SDG Goal Deep Dive Modal -->
+  <div class="modal fade" id="goalDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content card-glass overflow-hidden">
+        <div class="modal-header border-0" id="goalModalHeader" style="background: #059669; color: #fff;">
+          <h5 class="modal-title fw-bold" id="goalModalTitle">SDG Goal Vision</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="goalModalBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Modules -->
+  <script src="../js/data.js"></script>
+  <script src="../js/state.js"></script>
+  <script src="../js/ai-engine.js"></script>
+  <script src="../js/chatbot.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Theme toggle
+      const toggleBtn = document.getElementById("theme-toggle-btn");
+      if (toggleBtn) {
+        toggleBtn.addEventListener("click", () => {
+          const cur = document.documentElement.getAttribute("data-theme") || "light";
+          const next = cur === "light" ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", next);
+          toggleBtn.innerHTML = next === "dark" 
+            ? `<i class="fa-solid fa-sun text-warning"></i>` 
+            : `<i class="fa-solid fa-moon text-secondary"></i>`;
+        });
+      }
+
+      // Render 17 SDGs Grid
+      const grid = document.getElementById("home-sdg-grid");
+      if (grid && window.SDG_DATA) {
+        grid.innerHTML = window.SDG_DATA.goals.map(goal => `
+          <div class="col-6 col-md-4 col-lg-2 col-xl-2">
+            <div class="home-sdg-card p-3 rounded-4 h-100 d-flex flex-column justify-content-between text-white" 
+                 style="background: ${goal.color}; cursor: pointer;" 
+                 data-goal-id="${goal.id}">
+              <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="fs-4 fw-bold opacity-75">${goal.number}</span>
+                  <i class="${goal.icon} fs-4"></i>
+                </div>
+                <h6 class="fw-bold mb-1 lh-sm">${goal.name}</h6>
+              </div>
+              <small class="opacity-75" style="font-size: 0.75rem;">${goal.shortName}</small>
+            </div>
+          </div>
+        `).join("");
+
+        grid.querySelectorAll(".home-sdg-card").forEach(card => {
+          card.addEventListener("click", () => {
+            const id = parseInt(card.getAttribute("data-goal-id"), 10);
+            const goal = window.SDG_DATA.goals.find(g => g.id === id);
+            if (!goal) return;
+
+            document.getElementById("goalModalHeader").style.background = goal.color;
+            document.getElementById("goalModalTitle").innerHTML = `<i class="${goal.icon} me-2"></i> SDG ${goal.number}: ${goal.name}`;
+            document.getElementById("goalModalBody").innerHTML = `
+              <div class="p-3 mb-3 rounded-3 bg-light border">
+                <h6 class="fw-bold mb-1 text-dark">Global Vision:</h6>
+                <p class="text-muted small mb-0">${goal.vision}</p>
+              </div>
+              <h6 class="fw-bold mb-2">🎯 Key UN Targets:</h6>
+              <ul class="small text-muted mb-3">
+                ${goal.keyTargets.map(t => `<li class="mb-1">${t}</li>`).join("")}
+              </ul>
+              <div class="p-3 rounded-3 bg-light border">
+                <h6 class="fw-bold mb-1 text-success"><i class="fa-solid fa-leaf me-1"></i> Campus Action:</h6>
+                <p class="text-muted small mb-0">${goal.campusImpact}</p>
+              </div>
+            `;
+            const modal = new bootstrap.Modal(document.getElementById("goalDetailModal"));
+            modal.show();
+          });
+        });
+      }
+
+      // Initialize floating bot
+      window.sdgChatbot.init();
+    });
+  </script>
+</body>
+</html>
