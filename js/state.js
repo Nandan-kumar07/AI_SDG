@@ -1,11 +1,38 @@
 // Shared State and Session Management for Multi-Page SDG Antigravity Web Platform
-// Synchronizes Auth State across separate HTML pages using LocalStorage only
+// Synchronizes auth state across pages and persists it through the backend when available.
 
 class AppState {
   constructor() {
     this.STORAGE_KEY = "SDG_CAMPUS_PLATFORM_V3_MULTIPAGE";
     this.state = this.loadInitialState();
     this.listeners = new Set();
+    this.ready = this.hydrateFromBackend();
+  }
+
+  authHeaders() {
+    const token = localStorage.getItem("SDG_SESSION_TOKEN");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async hydrateFromBackend() {
+    try {
+      const response = await fetch("/api/state", { headers: this.authHeaders() });
+      if (!response.ok) return;
+      const backendState = await response.json();
+      this.state = { ...this.state, ...backendState };
+      this.persistLocalState();
+      this.notify();
+    } catch (error) {
+      console.info("Backend unavailable; using local seed state.", error.message);
+    }
+  }
+
+  persistLocalState() {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+    } catch (e) {
+      console.warn("Could not save to LocalStorage", e);
+    }
   }
 
   loadInitialState() {
@@ -42,11 +69,20 @@ class AppState {
   }
 
   save() {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
-    } catch (e) {
-      console.warn("Could not save to LocalStorage", e);
-    }
+    this.persistLocalState();
+    fetch("/api/state", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...this.authHeaders() },
+      body: JSON.stringify(this.state)
+    }).then(async response => {
+      if (response.ok) {
+        const result = await response.json();
+        if (Number.isInteger(result.revision)) this.state.revision = result.revision;
+        this.persistLocalState();
+      } else if (response.status === 409) {
+        console.warn("State update skipped because another user changed the shared state.");
+      }
+    }).catch(() => undefined);
     this.notify();
   }
 
@@ -73,7 +109,31 @@ class AppState {
     return true;
   }
 
-  loginStudent(usnOrEmail, password) {
+  async loginStudent(usnOrEmail, password, collegeCode = "CAMPUS001", classCode = "") {
+    await this.ready;
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "student", identifier: usnOrEmail, password, collegeCode, classCode })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
+        this.state = { ...this.state, ...result.state };
+        if (window.sdgAiEngine && result.user) {
+          const assignedTask = await window.sdgAiEngine.suggestTaskForStudent(result.user);
+          this.state.activities.unshift(assignedTask);
+          this.assignTaskToStudent(assignedTask.id, result.user.id, "ai_agent");
+          this.save();
+        }
+        this.persistLocalState();
+        this.notify();
+        return { success: true, user: result.user, backend: "postgresql" };
+      }
+    } catch (error) {
+      console.info("Student login API unavailable; using local state.", error.message);
+    }
     const student = this.state.students.find(
       s => (s.usn.toLowerCase() === usnOrEmail.toLowerCase() || s.email.toLowerCase() === usnOrEmail.toLowerCase())
     );
@@ -92,7 +152,25 @@ class AppState {
     };
   }
 
-  signupStudent(formData) {
+  async signupStudent(formData, collegeCode = "CAMPUS001", classCode = "") {
+    await this.ready;
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "student", formData, collegeCode, classCode })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
+        this.state = { ...this.state, ...result.state };
+        this.persistLocalState();
+        this.notify();
+        return { success: true, user: result.user, backend: "postgresql" };
+      }
+    } catch (error) {
+      console.info("Student signup API unavailable; using local state.", error.message);
+    }
     const skillsList = formData.skills ? formData.skills.split(",").map(s => s.trim()).filter(Boolean) : ["Python", "Deep Learning"];
     const interestsList = formData.interests ? formData.interests.split(",").map(i => i.trim()).filter(Boolean) : ["Responsible Consumption (SDG 12)"];
 
@@ -119,7 +197,7 @@ class AppState {
     this.state.userRole = "student";
 
     if (window.sdgAiEngine) {
-      const assignedTask = window.sdgAiEngine.generateDynamicTaskForStudent(newStudent);
+      const assignedTask = await window.sdgAiEngine.suggestTaskForStudent(newStudent);
       this.state.activities.unshift(assignedTask);
       this.assignTaskToStudent(assignedTask.id, newStudent.id, "ai_agent");
     }
@@ -128,7 +206,25 @@ class AppState {
     return { success: true, user: newStudent, backend: 'localstorage' };
   }
 
-  loginFaculty(email, password) {
+  async loginFaculty(email, password, collegeCode = "CAMPUS001", classCode = "") {
+    await this.ready;
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "faculty", identifier: email, password, collegeCode, classCode })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
+        this.state = { ...this.state, ...result.state };
+        this.persistLocalState();
+        this.notify();
+        return { success: true, user: result.user, backend: "postgresql" };
+      }
+    } catch (error) {
+      console.info("Faculty login API unavailable; using local state.", error.message);
+    }
     const faculty = this.state.faculty.find(
       f => f.email.toLowerCase() === email.toLowerCase()
     );
@@ -147,7 +243,25 @@ class AppState {
     };
   }
 
-  signupFaculty(formData) {
+  async signupFaculty(formData, collegeCode = "CAMPUS001", createCollege = false, classCode = "") {
+    await this.ready;
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "faculty", formData, collegeCode, classCode, createCollege })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
+        this.state = { ...this.state, ...result.state };
+        this.persistLocalState();
+        this.notify();
+        return { success: true, user: result.user, backend: "postgresql" };
+      }
+    } catch (error) {
+      console.info("Faculty signup API unavailable; using local state.", error.message);
+    }
     const newFaculty = {
       id: "FAC-" + Math.floor(1000 + Math.random() * 9000),
       name: formData.name,
@@ -165,10 +279,12 @@ class AppState {
     return { success: true, user: newFaculty, backend: 'localstorage' };
   }
 
-  logout() {
+  async logout() {
     this.state.currentUser = null;
     this.state.userRole = "guest";
+    localStorage.removeItem("SDG_SESSION_TOKEN");
     this.save();
+    await this.ready;
     window.location.href = "index.html";
   }
 
@@ -181,6 +297,55 @@ class AppState {
   setFacultySubPage(page) {
     this.state.facultySubPage = page;
     this.save();
+  }
+
+  addQuiz(quiz) {
+    this.state.quizzes.unshift(quiz);
+    this.save();
+    return quiz;
+  }
+
+  async createClass(name, joinCode, section = "A") {
+    const response = await fetch("/api/classes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...this.authHeaders() },
+      body: JSON.stringify({ name, joinCode, section })
+    });
+    if (!response.ok) throw new Error((await response.json()).message || "Could not create class");
+    const result = await response.json();
+    this.state.classes = [result.class, ...(this.state.classes || [])];
+    this.save();
+    return result.class;
+  }
+
+  async selectClass(classId) {
+    const response = await fetch("/api/classes/select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...this.authHeaders() },
+      body: JSON.stringify({ classId })
+    });
+    if (!response.ok) throw new Error((await response.json()).message || "Could not select class");
+    const result = await response.json();
+    if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
+    this.state.activeClass = result.activeClass;
+    this.state.classId = result.activeClass.id;
+    await this.hydrateFromBackend();
+    return result.activeClass;
+  }
+
+  async joinClass(joinCode) {
+    const response = await fetch("/api/classes/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...this.authHeaders() },
+      body: JSON.stringify({ joinCode })
+    });
+    if (!response.ok) throw new Error((await response.json()).message || "Could not join class");
+    const result = await response.json();
+    if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
+    this.state.activeClass = result.activeClass;
+    this.state.classId = result.activeClass.id;
+    await this.hydrateFromBackend();
+    return result.activeClass;
   }
 
   createActivity(activityData) {
@@ -303,7 +468,7 @@ class AppState {
     return newSub;
   }
 
-  reviewSubmission(submissionId, decision, feedback = "") {
+  reviewSubmission(submissionId, decision, feedback = "", awardedPoints = null) {
     const sub = this.state.submissions.find(s => s.id === submissionId);
     if (!sub) return null;
 
@@ -316,8 +481,11 @@ class AppState {
     sub.verification.facultyFeedback = feedback;
 
     if (decision === "approve") {
-      sub.pointsAwarded = points;
-      this.creditStudentReward(sub.studentId, points, sub.sdgGoalId);
+      const approvedPoints = awardedPoints === null
+        ? points
+        : Math.max(0, Math.min(points, Number(awardedPoints) || 0));
+      sub.pointsAwarded = approvedPoints;
+      this.creditStudentReward(sub.studentId, approvedPoints, sub.sdgGoalId);
       this.state.studentOngoingTasks = this.state.studentOngoingTasks.filter(t => t.taskId !== sub.taskId);
     }
 

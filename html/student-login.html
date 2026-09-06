@@ -59,10 +59,19 @@
         <form id="form-student-login">
           <div class="mb-3">
             <label class="form-label small fw-bold">USN or University Email</label>
-            <div class="input-group">
+            <input type="email" id="student-signup-email" class="form-control form-control-sm" placeholder="akash@campus.edu" />
               <span class="input-group-text bg-light"><i class="fa-solid fa-id-card text-muted"></i></span>
               <input type="text" id="student-login-usn" class="form-control" placeholder="e.g. 1RV22CS045" value="1RV22CS045" required />
             </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">College Join Code</label>
+            <input type="text" id="student-login-college-code" class="form-control" placeholder="e.g. CAMPUS001" value="CAMPUS001" required />
+          </div>
+          <div class="mb-3 d-none">
+            <label class="form-label small fw-bold">Class Join Code</label>
+            <input type="text" id="student-login-class-code" class="form-control" placeholder="Optional class code" value="" />
           </div>
 
           <div class="mb-3">
@@ -126,9 +135,18 @@
             </div>
           </div>
 
-          <div class="mb-2">
+          <div class="mb-2 d-none">
             <label class="form-label small fw-bold">Institutional Email</label>
-            <input type="email" id="student-signup-email" class="form-control form-control-sm" placeholder="akash@campus.edu" required />
+            <input type="email" id="student-signup-email" class="form-control form-control-sm" placeholder="akash@campus.edu" />
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label small fw-bold">College Join Code</label>
+            <input type="text" id="student-signup-college-code" class="form-control form-control-sm" placeholder="Code provided by your faculty" value="CAMPUS001" required />
+          </div>
+          <div class="mb-2 d-none">
+            <label class="form-label small fw-bold">Class Join Code</label>
+            <input type="text" id="student-signup-class-code" class="form-control form-control-sm" placeholder="Optional class code" value="" />
           </div>
 
           <div class="row g-2 mb-2">
@@ -206,10 +224,12 @@
       });
 
       // Login Form Submit
-      document.getElementById("form-student-login").addEventListener("submit", (e) => {
+      document.getElementById("form-student-login").addEventListener("submit", async (e) => {
         e.preventDefault();
         const usnOrEmail = document.getElementById("student-login-usn").value.trim();
         const pass = document.getElementById("student-login-pass").value;
+        const collegeCode = document.getElementById("student-login-college-code").value.trim();
+        const classCode = document.getElementById("student-login-class-code").value.trim();
         const captcha = document.getElementById("student-login-captcha").value.trim().toUpperCase();
 
         if (captcha !== currentCaptcha) {
@@ -218,12 +238,13 @@
           return;
         }
 
-        window.appState.loginStudent(usnOrEmail, pass);
-        window.location.href = "student-dashboard.html";
+        const result = await window.appState.loginStudent(usnOrEmail, pass, collegeCode, classCode);
+        if (result.success) window.location.href = "student-dashboard.html";
+        else alert("Login failed. Please check your credentials.");
       });
 
       // Signup Form Submit
-      document.getElementById("form-student-signup").addEventListener("submit", (e) => {
+      document.getElementById("form-student-signup").addEventListener("submit", async (e) => {
         e.preventDefault();
         const name = document.getElementById("student-signup-name").value.trim();
         const usn = document.getElementById("student-signup-usn").value.trim();
@@ -233,13 +254,17 @@
         const phone = document.getElementById("student-signup-phone").value.trim();
         const email = document.getElementById("student-signup-email").value.trim();
         const pass = document.getElementById("student-signup-pass").value;
+        const collegeCode = document.getElementById("student-signup-college-code").value.trim();
+        const classCode = document.getElementById("student-signup-class-code").value.trim();
 
-        window.appState.signupStudent({
+        const result = await window.appState.signupStudent({
           name, usn, department: dept, skills, interests, phone, email, password: pass
-        });
+        }, collegeCode, classCode);
 
-        alert("🎉 Registration successful! AI has analyzed your skills and assigned your first challenge. Redirecting to your dashboard...");
-        window.location.href = "student-dashboard.html";
+        if (result.success) {
+          alert("Registration successful! Redirecting to your dashboard...");
+          window.location.href = "student-dashboard.html";
+        } else alert("Signup failed. Please try again.");
       });
     });
   </script>

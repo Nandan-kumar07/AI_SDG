@@ -63,6 +63,15 @@
           </div>
 
           <div class="mb-3">
+            <label class="form-label small fw-bold">College Join Code</label>
+            <input type="text" id="faculty-login-college-code" class="form-control" placeholder="e.g. CAMPUS001" value="CAMPUS001" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Class Join Code</label>
+            <input type="text" id="faculty-login-class-code" class="form-control" placeholder="Optional class code" value="" />
+          </div>
+
+          <div class="mb-3">
             <div class="d-flex justify-content-between align-items-center">
               <label class="form-label small fw-bold mb-0">Password</label>
               <a href="forgot-password.html" class="small text-primary text-decoration-none">Forgot Password?</a>
@@ -93,7 +102,7 @@
       <!-- Faculty Sign Up Form -->
       <div id="faculty-form-signup-box" class="d-none">
         <form id="form-faculty-signup">
-          <div class="mb-2">
+          <div class="mb-2 d-none">
             <label class="form-label small fw-bold">Faculty Name</label>
             <input type="text" id="faculty-signup-name" class="form-control form-control-sm" placeholder="Dr. Deepa Nair" required />
           </div>
@@ -115,9 +124,31 @@
             </div>
           </div>
 
-          <div class="mb-2">
+          <div class="mb-2 d-none">
             <label class="form-label small fw-bold">Institutional Email</label>
             <input type="email" id="faculty-signup-email" class="form-control form-control-sm" placeholder="faculty@campus.edu" required />
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label small fw-bold">Existing College Join Code</label>
+            <input type="text" id="faculty-signup-college-code" class="form-control form-control-sm" placeholder="Join an existing college" value="CAMPUS001" />
+          </div>
+
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="faculty-create-college" />
+            <label class="form-check-label small" for="faculty-create-college">Create a new college workspace instead</label>
+          </div>
+          <div class="mb-2 d-none" id="new-college-fields">
+            <input type="text" id="faculty-college-name" class="form-control form-control-sm mb-2" placeholder="New college name" />
+            <input type="text" id="faculty-college-join-code" class="form-control form-control-sm" placeholder="Choose a join code, e.g. GREENUNI01" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-bold">Class Join Code</label>
+            <input type="text" id="faculty-signup-class-code" class="form-control form-control-sm" placeholder="Optional class code" value="" />
+          </div>
+          <div class="mb-2 d-none" id="new-class-fields">
+            <input type="text" id="faculty-class-name" class="form-control form-control-sm mb-2" placeholder="New class name" />
+            <input type="text" id="faculty-class-join-code" class="form-control form-control-sm" placeholder="Choose a class code, e.g. CSE-A01" />
           </div>
 
           <div class="mb-2">
@@ -179,10 +210,19 @@
         loginBox.classList.add("d-none");
       });
 
-      document.getElementById("form-faculty-login").addEventListener("submit", (e) => {
+      document.getElementById("faculty-create-college").addEventListener("change", event => {
+        document.getElementById("new-college-fields").classList.toggle("d-none", !event.target.checked);
+        document.getElementById("faculty-signup-college-code").required = !event.target.checked;
+        document.getElementById("faculty-college-name").required = event.target.checked;
+        document.getElementById("faculty-college-join-code").required = event.target.checked;
+      });
+
+      document.getElementById("form-faculty-login").addEventListener("submit", async (e) => {
         e.preventDefault();
         const email = document.getElementById("faculty-login-email").value.trim();
         const pass = document.getElementById("faculty-login-pass").value;
+        const collegeCode = document.getElementById("faculty-login-college-code").value.trim();
+        const classCode = document.getElementById("faculty-login-class-code").value.trim();
         const captcha = document.getElementById("faculty-login-captcha").value.trim().toUpperCase();
 
         if (captcha !== currentCaptcha) {
@@ -191,24 +231,34 @@
           return;
         }
 
-        window.appState.loginFaculty(email, pass);
-        window.location.href = "faculty-dashboard.html";
+        const result = await window.appState.loginFaculty(email, pass, collegeCode, classCode);
+        if (result.success) window.location.href = "faculty-dashboard.html";
+        else alert("Login failed. Please check your credentials.");
       });
 
-      document.getElementById("form-faculty-signup").addEventListener("submit", (e) => {
+      document.getElementById("form-faculty-signup").addEventListener("submit", async (e) => {
         e.preventDefault();
         const name = document.getElementById("faculty-signup-name").value.trim();
         const dept = document.getElementById("faculty-signup-dept").value;
         const phone = document.getElementById("faculty-signup-phone").value.trim();
         const email = document.getElementById("faculty-signup-email").value.trim();
         const pass = document.getElementById("faculty-signup-pass").value;
+        const createCollege = document.getElementById("faculty-create-college").checked;
+        const collegeCode = createCollege ? document.getElementById("faculty-college-join-code").value.trim() : document.getElementById("faculty-signup-college-code").value.trim();
+        const classCode = createCollege ? document.getElementById("faculty-class-join-code").value.trim() : document.getElementById("faculty-signup-class-code").value.trim();
 
-        window.appState.signupFaculty({
-          name, department: dept, phone, email, password: pass
-        });
+        const result = await window.appState.signupFaculty({
+          name, department: dept, phone, email, password: pass,
+          collegeName: document.getElementById("faculty-college-name").value.trim(),
+          joinCode: document.getElementById("faculty-college-join-code").value.trim(),
+          className: document.getElementById("faculty-class-name").value.trim(),
+          classCode
+        }, collegeCode, createCollege, classCode);
 
-        alert("Registration successful! Redirecting to faculty portal...");
-        window.location.href = "faculty-dashboard.html";
+        if (result.success) {
+          alert("Registration successful! Redirecting to faculty portal...");
+          window.location.href = "faculty-dashboard.html";
+        } else alert("Signup failed. Please try again.");
       });
     });
   </script>

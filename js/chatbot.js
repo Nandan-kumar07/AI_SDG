@@ -266,7 +266,7 @@ class SdgChatbot {
     if (indicator) indicator.remove();
   }
 
-  generateAiResponse(query) {
+  async generateAiResponse(query) {
     const student = window.appState.state.currentUser || window.appState.state.students[0];
     const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -276,7 +276,7 @@ class SdgChatbot {
     if (query.includes("milestone") || query.includes("deep learning") || query.includes("dl")) {
       responseText = `🔬 **Deep Learning 4-Stage Milestone Roadmap:**\n\n1. **Milestone 1 (25% - Dataset)**: Upload Kaggle/Roboflow link with 4+ classes.\n2. **Milestone 2 (50% - Model Code)**: Provide public GitHub repo with documented \`train.py\` & model architecture.\n3. **Milestone 3 (75% - Training Curves)**: Upload Loss/Accuracy plot showing convergence and >90% accuracy.\n4. **Milestone 4 (100% - Demo & Report)**: Submit live Streamlit/Gradio demo URL and impact brief for faculty approval (+300 pts)!`;
     } else if (query.includes("assign") || query.includes("give me a task")) {
-      const dynamicTask = window.sdgAiEngine.generateDynamicTaskForStudent(student);
+      const dynamicTask = await window.sdgAiEngine.suggestTaskForStudent(student);
       window.appState.state.activities.unshift(dynamicTask);
       
       responseText = `✨ **Autonomous AI Task Assigned!**\n\n**${dynamicTask.title}**\n• **Goal**: SDG ${dynamicTask.goalId}\n• **Type**: ${dynamicTask.taskType === 'technical_dl_project' ? 'Technical Deep Learning Project (4 Milestones)' : 'Field Activity'}\n• **Reward**: +${dynamicTask.points} Points\n• **Brief**: ${dynamicTask.description}\n\nWould you like to enroll and add this to your Ongoing Tasks?`;

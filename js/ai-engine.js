@@ -70,89 +70,186 @@ class SdgAiEngine {
     return scoredTasks.slice(0, limit);
   }
 
-  // 2. AI Multi-Factor Verification (Supports both Technical DL Projects & Field Activities)
-  async analyzeSubmissionEvidence(file, task, metadata = {}) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const isDl = task ? task.taskType === "technical_dl_project" : (metadata.taskType === "technical_dl_project");
-
-        if (isDl) {
-          // Technical / Deep Learning Project Milestone Verification
-          const hasGithub = Boolean(metadata.githubRepoUrl && metadata.githubRepoUrl.includes("github.com"));
-          const milestone = metadata.milestoneIndex || 1;
-          const accuracy = metadata.modelAccuracy || "93.4%";
-
-          let confidence = hasGithub ? 94 : 75;
-          let explanation = "";
-          let detectedObjects = ["training loss plot", "confusion matrix", "git commit history"];
-
-          if (milestone === 1) {
-            explanation = "Milestone 1 Verified: Dataset source link verified. Contains 4 classes with 70/15/15 train/val/test distribution.";
-          } else if (milestone === 2) {
-            explanation = `Milestone 2 Verified: GitHub repository validated (${metadata.githubRepoUrl}). Verified PyTorch model pipeline and train.py.`;
-          } else if (milestone === 3) {
-            explanation = `Milestone 3 Verified: Neural loss curve analyzed. Validation loss converged steadily with ${accuracy} accuracy.`;
-          } else {
-            explanation = `Milestone 4 Complete: Working live demo and test inference predictions validated for SDG ${task ? task.goalId : 12}. Ready for faculty sign-off.`;
-          }
-
-          resolve({
-            status: "Needs Review", // Always routes to Faculty for technical code grading & final points approval
-            aiConfidence: confidence,
-            duplicateHashMatch: false,
-            perceptualHash: "dl-code-hash-" + Math.random().toString(36).substring(2, 9),
-            metadataIntegrity: `Passed: Valid GitHub & Colab repository deliverables for Milestone ${milestone}`,
-            detectedObjects: detectedObjects,
-            aiExplanation: explanation,
-            analyzedAt: new Date().toISOString().replace("T", " ").substring(0, 19)
-          });
-        } else {
-          // Standard Field Activity Verification (Photo EXIF + Object detection)
-          const hashSeed = (file ? file.name + file.size : "sample_img") + Math.random();
-          const perceptualHash = this.generateSimulatedHash(hashSeed);
-
-          const isDuplicate = window.appState.state.submissions.some(sub => 
-            sub.verification && sub.verification.perceptualHash === perceptualHash
-          );
-
-          const objectDictionary = {
-            7: ["solar panel array", "digital meter display", "circuit breaker"],
-            12: ["plastic segregation bin", "PET bottles", "organic waste composter"],
-            15: ["sapling tree", "soil trowel", "student hands"],
-            6: ["water tap fixture", "flow meter", "plumbing wrench"],
-            13: ["commute survey sheet", "bicycle rack", "carbon calculator"]
-          };
-
-          const detectedObjects = objectDictionary[task ? task.goalId : 12] || ["campus proof", "placard", "sustainability action"];
-
-          let confidence = isDuplicate ? 35 : Math.floor(88 + Math.random() * 9);
-          let status = confidence >= 85 && !isDuplicate ? "Verified" : "Needs Review";
-          let explanation = isDuplicate 
-            ? "Duplicate Flag: Identical image hash was previously submitted." 
-            : `Neural vision identified [${detectedObjects.slice(0, 2).join(", ")}] with high confidence.`;
-
-          resolve({
-            status: status,
-            aiConfidence: confidence,
-            duplicateHashMatch: isDuplicate,
-            perceptualHash: perceptualHash,
-            metadataIntegrity: "Passed (EXIF timestamp and campus perimeter verified)",
-            detectedObjects: detectedObjects,
-            aiExplanation: explanation,
-            analyzedAt: new Date().toISOString().replace("T", " ").substring(0, 19)
-          });
-        }
-      }, 1400);
-    });
+  async suggestTaskForStudent(student, targetGoalId = null) {
+    try {
+      const response = await fetch("/api/ai/task-suggestion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ student, goals: window.SDG_DATA.goals })
+      });
+      if (!response.ok) throw new Error("Vision LLM unavailable");
+      const result = await response.json();
+      const task = result.task;
+      return {
+        id: "TASK-LLM-" + Date.now(),
+        ...task,
+        goalId: targetGoalId ? Number(targetGoalId) : task.goalId,
+        department: student.department || "All Departments",
+        deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        status: "Active",
+        participantsCount: 1
+      };
+    } catch (error) {
+      console.info("Vision LLM task suggestion unavailable; using local generator.", error.message);
+      return this.generateDynamicTaskForStudent(student, targetGoalId);
+    }
   }
 
-  generateSimulatedHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash |= 0;
+  // 2. AI Multi-Factor Verification (Supports both Technical DL Projects & Field Activities)
+  async analyzeSubmissionEvidence(file, task, metadata = {}) {
+    const isDl = task ? task.taskType === "technical_dl_project" : (metadata.taskType === "technical_dl_project");
+    if (isDl) {
+      const hasGithub = Boolean(metadata.githubRepoUrl && metadata.githubRepoUrl.includes("github.com"));
+      return this.buildEvidenceResult("Needs Review", hasGithub ? 75 : 50, false, null,
+        "Technical deliverables recorded for faculty review. Repository contents and model metrics are not verified by this browser-only client.",
+        "Code evidence recorded; Vision-LLM and repository verification are not configured.");
     }
-    return "pHash-" + Math.abs(hash).toString(16).padStart(8, "0");
+
+    if (!file || !file.type.startsWith("image/")) {
+      return this.buildEvidenceResult("Needs Review", 0, false, null,
+        "No image evidence was provided. Upload the original proof photo for forensic checks.",
+        "Failed: an image file is required for EXIF and perceptual analysis.");
+    }
+
+    try {
+      const [perceptualHash, exif] = await Promise.all([
+        this.generatePerceptualHash(file),
+        this.extractJpegExif(file)
+      ]);
+      const previousHashes = window.appState.state.submissions
+        .map(submission => submission.verification && submission.verification.perceptualHash)
+        .filter(Boolean);
+      const duplicateHashMatch = previousHashes.some(previous => this.perceptualHashDistance(perceptualHash, previous) <= 6);
+      const geo = this.verifyGeoFence(exif);
+
+      return this.buildEvidenceResult("Needs Review", duplicateHashMatch || !geo.withinFence ? 35 : 86,
+        duplicateHashMatch, perceptualHash,
+        duplicateHashMatch
+          ? "Duplicate Flag: this image is perceptually identical to a previous submission."
+          : geo.withinFence
+            ? "Image fingerprint is unique and GPS coordinates fall inside the campus fence. Visual semantic validation requires faculty review because no Vision-LLM provider is configured."
+            : geo.reason,
+        `EXIF: ${exif.present ? "found" : "missing"}; GPS: ${geo.reason}; Vision-LLM: not configured.`,
+        { exif, geo, semanticValidation: "unavailable" });
+    } catch (error) {
+      return this.buildEvidenceResult("Needs Review", 0, false, null,
+        `Forensic analysis could not complete: ${error.message}`,
+        "Failed: the image could not be decoded for EXIF or perceptual analysis.");
+    }
+  }
+
+  buildEvidenceResult(status, aiConfidence, duplicateHashMatch, perceptualHash, aiExplanation, metadataIntegrity, forensic = {}) {
+    return { status, aiConfidence, duplicateHashMatch, perceptualHash, metadataIntegrity,
+      detectedObjects: [], aiExplanation, forensic,
+      analyzedAt: new Date().toISOString().replace("T", " ").substring(0, 19) };
+  }
+
+  async generatePerceptualHash(file) {
+    const bitmap = await createImageBitmap(file);
+    const size = 32;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(bitmap, 0, 0, size, size);
+    bitmap.close();
+    const pixels = context.getImageData(0, 0, size, size).data;
+    const luminance = [];
+    for (let index = 0; index < pixels.length; index += 4) {
+      luminance.push((pixels[index] * 299 + pixels[index + 1] * 587 + pixels[index + 2] * 114) / 1000);
+    }
+    const coefficients = [];
+    for (let row = 0; row < 8; row++) {
+      for (let column = 0; column < 8; column++) {
+        let coefficient = 0;
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            coefficient += luminance[y * size + x]
+              * Math.cos(((2 * x + 1) * column * Math.PI) / (2 * size))
+              * Math.cos(((2 * y + 1) * row * Math.PI) / (2 * size));
+          }
+        }
+        if (row || column) coefficients.push(coefficient);
+      }
+    }
+    const sorted = [...coefficients].sort((first, second) => first - second);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    return "pHash-" + coefficients.map(value => value >= median ? "1" : "0").join("");
+  }
+
+  perceptualHashDistance(first, second) {
+    if (!first || !second || first.length !== second.length) return Number.MAX_SAFE_INTEGER;
+    return Array.from(first).reduce((distance, value, index) => distance + (value !== second[index] ? 1 : 0), 0);
+  }
+
+  async extractJpegExif(file) {
+    if (file.type !== "image/jpeg" && file.type !== "image/jpg") return { present: false, gps: null };
+    const buffer = await file.arrayBuffer();
+    const bytes = new DataView(buffer);
+    if (bytes.getUint16(0, false) !== 0xffd8) return { present: false, gps: null };
+    let offset = 2;
+    while (offset + 4 < bytes.byteLength) {
+      if (bytes.getUint8(offset) !== 0xff) { offset++; continue; }
+      const marker = bytes.getUint8(offset + 1);
+      const length = bytes.getUint16(offset + 2, false);
+      if (marker === 0xe1 && this.readAscii(bytes, offset + 4, 6) === "Exif\0\0") return this.readExifGps(bytes, offset + 10);
+      offset += 2 + length;
+    }
+    return { present: false, gps: null };
+  }
+
+  readAscii(bytes, offset, length) {
+    return Array.from({ length }, (_, index) => String.fromCharCode(bytes.getUint8(offset + index))).join("");
+  }
+
+  readExifGps(bytes, tiffOffset) {
+    const littleEndian = this.readAscii(bytes, tiffOffset, 2) === "II";
+    const read16 = offset => bytes.getUint16(offset, littleEndian);
+    const read32 = offset => bytes.getUint32(offset, littleEndian);
+    const ifdOffset = tiffOffset + read32(tiffOffset + 4);
+    const entryCount = read16(ifdOffset);
+    let gpsOffset = null;
+    for (let index = 0; index < entryCount; index++) {
+      const entry = ifdOffset + 2 + index * 12;
+      if (read16(entry) === 0x8825) gpsOffset = tiffOffset + read32(entry + 8);
+    }
+    if (!gpsOffset) return { present: true, gps: null };
+    const gpsCount = read16(gpsOffset);
+    const tags = {};
+    for (let index = 0; index < gpsCount; index++) {
+      const entry = gpsOffset + 2 + index * 12;
+      tags[read16(entry)] = entry;
+    }
+    const readRef = tag => tags[tag] ? this.readAscii(bytes, tags[tag] + 8, 1) : null;
+    const readRationals = tag => {
+      const entry = tags[tag];
+      if (!entry) return null;
+      const start = tiffOffset + read32(entry + 8);
+      return [0, 1, 2].map(index => read32(start + index * 8) / read32(start + index * 8 + 4));
+    };
+    const latitude = readRationals(2);
+    const longitude = readRationals(4);
+    if (!latitude || !longitude) return { present: true, gps: null };
+    return { present: true, gps: {
+      lat: (latitude[0] + latitude[1] / 60 + latitude[2] / 3600) * (readRef(1) === "S" ? -1 : 1),
+      lng: (longitude[0] + longitude[1] / 60 + longitude[2] / 3600) * (readRef(3) === "W" ? -1 : 1)
+    }};
+  }
+
+  verifyGeoFence(exif) {
+    if (!exif.gps) return { withinFence: false, reason: "GPS EXIF coordinates are missing; faculty review is required." };
+    const distance = this.distanceKm(this.campusGeoFence.lat, this.campusGeoFence.lng, exif.gps.lat, exif.gps.lng);
+    return distance <= this.campusGeoFence.radiusKm
+      ? { withinFence: true, distanceKm: distance.toFixed(2), reason: `GPS is ${distance.toFixed(2)} km from the campus reference.` }
+      : { withinFence: false, distanceKm: distance.toFixed(2), reason: `GPS is ${distance.toFixed(2)} km from campus, outside the ${this.campusGeoFence.radiusKm} km fence.` };
+  }
+
+  distanceKm(lat1, lng1, lat2, lng2) {
+    const radians = value => value * Math.PI / 180;
+    const deltaLat = radians(lat2 - lat1);
+    const deltaLng = radians(lng2 - lng1);
+    const a = Math.sin(deltaLat / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(deltaLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   // 3. Autonomous AI Task Assigner (Dynamically generates Technical DL Projects for CS students)

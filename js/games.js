@@ -461,6 +461,54 @@ class GamesEngine {
   }
 
   // Games Hub Overview Listing
+  startCarbonChallenge() {
+    const container = document.getElementById("game-arena-mount");
+    if (!container) return;
+    const scenarios = [
+      { prompt: "Which campus change cuts commuting emissions fastest?", answer: "bicycle", options: ["bicycle", "larger parking lot", "more diesel shuttles"] },
+      { prompt: "Which upgrade usually saves the most electricity in a classroom?", answer: "led", options: ["LED lighting", "keep lights on", "remove window shades"] },
+      { prompt: "Which action stores more carbon on campus?", answer: "native trees", options: ["native trees", "concrete paving", "extra generators"] }
+    ];
+    const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+    container.innerHTML = `<div class="card-glass p-4 animate-fade-in"><button class="btn btn-sm btn-outline-secondary mb-4" id="btn-exit-quick-game"><i class="fa-solid fa-arrow-left me-1"></i> Back to Games</button><span class="badge bg-success-soft text-success mb-2">SDG 13 · Climate Action</span><h3 class="fw-bold">Carbon Choice Challenge</h3><p class="lead">${scenario.prompt}</p><div class="d-grid gap-2 mt-4">${scenario.options.map(option => `<button class="btn btn-outline-success quick-choice" data-answer="${option}">${option}</button>`).join("")}</div><div id="quick-game-feedback" class="mt-3 fw-bold"></div></div>`;
+    document.getElementById("btn-exit-quick-game").addEventListener("click", () => this.renderGamesHub());
+    container.querySelectorAll(".quick-choice").forEach(button => button.addEventListener("click", () => {
+      const correct = button.dataset.answer === scenario.answer;
+      const feedback = document.getElementById("quick-game-feedback");
+      feedback.innerHTML = correct ? "<span class='text-success'>Correct. +50 SDG points.</span>" : `<span class='text-danger'>Try again. The best answer is ${scenario.answer}.</span>`;
+      if (correct) {
+        container.querySelectorAll(".quick-choice").forEach(choice => choice.disabled = true);
+        this.awardQuickGame(50, "Climate Choice Maker");
+      }
+    }));
+  }
+
+  startWaterDetective() {
+    const container = document.getElementById("game-arena-mount");
+    if (!container) return;
+    const leaks = ["tap left running", "rainwater tank overflow", "hidden pipe leak"];
+    const correct = leaks[Math.floor(Math.random() * leaks.length)];
+    container.innerHTML = `<div class="card-glass p-4 animate-fade-in"><button class="btn btn-sm btn-outline-secondary mb-4" id="btn-exit-quick-game"><i class="fa-solid fa-arrow-left me-1"></i> Back to Games</button><span class="badge bg-info-soft text-info mb-2">SDG 6 · Clean Water</span><h3 class="fw-bold">Water Leak Detective</h3><p class="lead">Campus usage jumped overnight. Which clue should the facilities team inspect first?</p><div class="row g-3 mt-2">${leaks.map(leak => `<div class="col-md-4"><button class="btn btn-outline-info w-100 h-100 py-3 quick-choice" data-answer="${leak}">${leak}</button></div>`).join("")}</div><div id="quick-game-feedback" class="mt-3 fw-bold"></div></div>`;
+    document.getElementById("btn-exit-quick-game").addEventListener("click", () => this.renderGamesHub());
+    container.querySelectorAll(".quick-choice").forEach(button => button.addEventListener("click", () => {
+      const correctChoice = button.dataset.answer === correct;
+      document.getElementById("quick-game-feedback").innerHTML = correctChoice ? "<span class='text-success'>Investigation complete. +50 SDG points.</span>" : `<span class='text-danger'>Not this time. Inspect the ${correct}.</span>`;
+      if (correctChoice) {
+        container.querySelectorAll(".quick-choice").forEach(choice => choice.disabled = true);
+        this.awardQuickGame(50, "Water Steward");
+      }
+    }));
+  }
+
+  awardQuickGame(points, badge) {
+    const student = window.appState.state.currentUser;
+    if (!student) return;
+    student.points = (student.points || 0) + points;
+    student.badges = student.badges || [];
+    if (!student.badges.includes(badge)) student.badges.push(badge);
+    window.appState.save();
+  }
+
   renderGamesHub() {
     const container = document.getElementById("student-subpage-container");
     if (!container) return;
@@ -505,6 +553,20 @@ class GamesEngine {
               </div>
             </div>
 
+            <div class="col-md-6">
+              <div class="card-glass game-teaser-card h-100 p-4 d-flex flex-column justify-content-between">
+                <div><span class="badge bg-success-soft text-success px-3 py-2">SDG 13 · Climate Action</span><div class="text-center my-3"><span style="font-size: 4rem;">🌍</span></div><h4 class="fw-bold mb-2">Carbon Choice Challenge</h4><p class="text-muted small">Choose the highest-impact campus action in quick climate scenarios.</p></div>
+                <button class="btn btn-outline-success w-100 py-2 fw-bold" id="btn-launch-carbon"><i class="fa-solid fa-leaf me-2"></i> Play Carbon Challenge</button>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card-glass game-teaser-card h-100 p-4 d-flex flex-column justify-content-between">
+                <div><span class="badge bg-info-soft text-info px-3 py-2">SDG 6 · Clean Water</span><div class="text-center my-3"><span style="font-size: 4rem;">💧</span></div><h4 class="fw-bold mb-2">Water Leak Detective</h4><p class="text-muted small">Investigate campus clues and identify the most likely water-loss source.</p></div>
+                <button class="btn btn-outline-info w-100 py-2 fw-bold" id="btn-launch-water"><i class="fa-solid fa-droplet me-2"></i> Play Water Detective</button>
+              </div>
+            </div>
+
             <!-- Game 2: NetZero Campus Grid -->
             <div class="col-md-6">
               <div class="card-glass game-teaser-card h-100 p-4 d-flex flex-column justify-content-between">
@@ -540,6 +602,8 @@ class GamesEngine {
 
     document.getElementById("btn-launch-eco-sorter").addEventListener("click", () => this.startEcoSorter());
     document.getElementById("btn-launch-netzero").addEventListener("click", () => this.startNetZero());
+    document.getElementById("btn-launch-carbon").addEventListener("click", () => this.startCarbonChallenge());
+    document.getElementById("btn-launch-water").addEventListener("click", () => this.startWaterDetective());
   }
 }
 

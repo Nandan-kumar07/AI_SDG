@@ -454,7 +454,7 @@ class AppController {
         this.renderStudentSdgGoalsPage(container);
         break;
       case "quiz":
-        this.renderStudentQuizPage(container);
+        this.renderStudentQuizPage(container, state);
         break;
       case "games":
         window.gamesEngine.renderGamesHub();
@@ -519,6 +519,13 @@ class AppController {
                 <i class="fa-solid fa-wand-magic-sparkles me-2"></i> AI Auto-Assign Task
               </button>
             </div>
+          </div>
+        </div>
+
+        <div class="card-glass p-4 mb-4 border-start border-success border-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div><h5 class="fw-bold mb-1">${state.activeClass ? `Class: ${state.activeClass.name}` : "Join a class"}</h5><p class="text-muted small mb-0">${state.activeClass ? `Class code: ${state.activeClass.joinCode}. Your activities and progress are scoped here.` : "Enter the class code shared by your faculty to see its projects, quizzes, and classmates."}</p></div>
+            ${state.activeClass ? `<span class="badge bg-success-soft text-success">${state.activeClass.joinCode}</span>` : `<form id="form-join-class" class="d-flex gap-2"><input id="student-class-join-code" class="form-control form-control-sm" required placeholder="Class join code" /><button class="btn btn-sm btn-success" type="submit"><i class="fa-solid fa-right-to-bracket me-1"></i> Join</button></form>`}
           </div>
         </div>
 
@@ -706,9 +713,18 @@ class AppController {
 
     // Listeners
     const reqBtn = document.getElementById("btn-request-ai-assignment");
+    document.getElementById("form-join-class")?.addEventListener("submit", async event => {
+      event.preventDefault();
+      try {
+        const joinedClass = await window.appState.joinClass(document.getElementById("student-class-join-code").value.trim());
+        alert(`Joined ${joinedClass.name}. Your class activities are ready.`);
+      } catch (error) {
+        alert(error.message);
+      }
+    });
     if (reqBtn) {
-      reqBtn.addEventListener("click", () => {
-        const dynamicTask = window.sdgAiEngine.generateDynamicTaskForStudent(student);
+      reqBtn.addEventListener("click", async () => {
+        const dynamicTask = await window.sdgAiEngine.suggestTaskForStudent(student);
         window.appState.state.activities.unshift(dynamicTask);
         window.appState.assignTaskToStudent(dynamicTask.id);
         alert(`🌟 AI Task Assigned: "${dynamicTask.title}" (+${dynamicTask.points} pts) added to your ongoing tasks!`);
@@ -856,7 +872,8 @@ class AppController {
   }
 
   // Page 3: Quiz Arena
-  renderStudentQuizPage(container) {
+  renderStudentQuizPage(container, state) {
+    const quizzes = state.quizzes || [];
     container.innerHTML = `
       <div class="quiz-hub-wrapper animate-fade-in">
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -867,7 +884,7 @@ class AppController {
         </div>
 
         <div class="row g-4">
-          ${window.SDG_DATA.quizzes.map(quiz => `
+          ${quizzes.map(quiz => `
             <div class="col-md-6">
               <div class="card-glass quiz-topic-card h-100 p-4 d-flex flex-column justify-content-between">
                 <div>
@@ -1009,8 +1026,8 @@ class AppController {
 
     const aiAssignBtn2 = document.getElementById("btn-trigger-ai-assign-2");
     if (aiAssignBtn2) {
-      aiAssignBtn2.addEventListener("click", () => {
-        const dynamicTask = window.sdgAiEngine.generateDynamicTaskForStudent(student);
+      aiAssignBtn2.addEventListener("click", async () => {
+        const dynamicTask = await window.sdgAiEngine.suggestTaskForStudent(student);
         window.appState.state.activities.unshift(dynamicTask);
         window.appState.assignTaskToStudent(dynamicTask.id);
         alert(`🌟 AI Task Assigned: "${dynamicTask.title}" (+${dynamicTask.points} pts) added to your ongoing tasks!`);
@@ -1135,9 +1152,76 @@ class AppController {
 
     if (subPage === "student-progress") {
       this.renderFacultyProgressPage(container, faculty, state);
-    } else {
+    } else if (subPage === "activity-creation") {
       this.renderFacultyActivityCreationPage(container, faculty, state);
+    } else {
+      this.renderFacultyQuizCreationPage(container, faculty, state);
     }
+  }
+
+  renderFacultyQuizCreationPage(container, faculty, state) {
+    const quizzes = state.quizzes || [];
+    container.innerHTML = `
+      <div class="faculty-quiz-builder animate-fade-in">
+        <div class="row g-4">
+          <div class="col-lg-7">
+            <div class="card-glass p-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div><h4 class="fw-bold mb-1">Quiz Builder</h4><p class="text-muted small mb-0">Publish SDG knowledge checks for the student Quiz Arena.</p></div>
+                <i class="fa-solid fa-brain text-primary fs-2"></i>
+              </div>
+              <form id="form-faculty-create-quiz">
+                <div class="row g-2 mb-3">
+                  <div class="col-md-8"><label class="form-label small fw-bold">Quiz title</label><input id="new-quiz-title" class="form-control" required placeholder="SDG 6: Water Stewardship" /></div>
+                  <div class="col-md-4"><label class="form-label small fw-bold">SDG</label><select id="new-quiz-goal" class="form-select" required>${window.SDG_DATA.goals.map(goal => `<option value="${goal.id}">SDG ${goal.id}: ${goal.shortName}</option>`).join("")}</select></div>
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-md-6"><label class="form-label small fw-bold">Badge</label><input id="new-quiz-badge" class="form-control" required placeholder="Water Steward" /></div>
+                  <div class="col-md-6"><label class="form-label small fw-bold">Time limit (seconds)</label><input id="new-quiz-time" type="number" class="form-control" value="120" min="30" max="600" required /></div>
+                </div>
+                <div id="quiz-question-list"></div>
+                <button class="btn btn-outline-primary w-100 mb-3" type="button" id="btn-add-quiz-question"><i class="fa-solid fa-plus me-1"></i> Add another question</button>
+                <button class="btn btn-primary w-100" type="submit"><i class="fa-solid fa-cloud-arrow-up me-1"></i> Publish Quiz</button>
+              </form>
+            </div>
+          </div>
+          <div class="col-lg-5"><div class="card-glass p-4 h-100"><h5 class="fw-bold mb-3">Published Quizzes (${quizzes.length})</h5><div class="d-flex flex-column gap-2">${quizzes.map(quiz => `<div class="p-3 bg-light border rounded-3"><strong class="d-block">${quiz.title}</strong><small class="text-muted">SDG ${quiz.goalId} · ${quiz.questions.length} question(s) · ${quiz.timeLimitSeconds}s</small></div>`).join("")}</div></div></div>
+        </div>
+      </div>`;
+
+    const questionList = document.getElementById("quiz-question-list");
+    let questionCount = 0;
+    const addQuestionEditor = () => {
+      const index = questionCount++;
+      const editor = document.createElement("div");
+      editor.className = "border rounded-3 p-3 mb-3 bg-light quiz-question-editor";
+      editor.dataset.questionIndex = index;
+      editor.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-2"><strong>Question ${index + 1}</strong>${index > 0 ? `<button type="button" class="btn btn-sm btn-outline-danger btn-remove-quiz-question"><i class="fa-solid fa-trash"></i></button>` : `<span class="badge bg-primary">Required</span>`}</div><input class="form-control mb-2 quiz-question-text" required placeholder="Question ${index + 1}" /><div class="row g-2">${[0,1,2,3].map(option => `<div class="col-md-6"><input class="form-control form-control-sm quiz-option" data-option-index="${option}" required placeholder="Option ${String.fromCharCode(65 + option)}" /></div>`).join("")}</div><label class="form-label small fw-bold mt-2">Correct option</label><select class="form-select form-select-sm quiz-correct-index" style="max-width: 180px"><option value="0">Option A</option><option value="1">Option B</option><option value="2">Option C</option><option value="3">Option D</option></select>`;
+      questionList.appendChild(editor);
+    };
+    addQuestionEditor();
+    document.getElementById("btn-add-quiz-question")?.addEventListener("click", addQuestionEditor);
+    questionList?.addEventListener("click", event => {
+      if (event.target.closest(".btn-remove-quiz-question")) event.target.closest(".quiz-question-editor").remove();
+    });
+
+    document.getElementById("form-faculty-create-quiz")?.addEventListener("submit", event => {
+      event.preventDefault();
+      const goal = window.SDG_DATA.goals.find(item => item.id === Number(document.getElementById("new-quiz-goal").value));
+      const questionEditors = [...document.querySelectorAll(".quiz-question-editor")];
+      if (questionEditors.length === 0) return alert("Add at least one question before publishing.");
+      state.quizzes.unshift({
+        topicId: `custom-${Date.now()}`, goalId: goal.id, title: document.getElementById("new-quiz-title").value.trim(),
+        badge: document.getElementById("new-quiz-badge").value.trim(), icon: goal.icon, color: goal.color,
+        timeLimitSeconds: Number(document.getElementById("new-quiz-time").value), questions: questionEditors.map((editor, index) => ({
+          id: `q-${Date.now()}-${index}`, question: editor.querySelector(".quiz-question-text").value.trim(),
+          options: [...editor.querySelectorAll(".quiz-option")].map(option => option.value.trim()),
+          correctIndex: Number(editor.querySelector(".quiz-correct-index").value), explanation: `This answer supports SDG ${goal.id}: ${goal.shortName}.`
+        }))
+      });
+      window.appState.save();
+      alert("Quiz published to the student Quiz Arena.");
+    });
   }
 
   renderFacultyProgressPage(container, faculty, state) {
@@ -1163,6 +1247,20 @@ class AppController {
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="card-glass p-4 mb-4 border-start border-primary border-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div><h5 class="fw-bold mb-1">Class workspace</h5><p class="text-muted small mb-0">Create a separate class for its own roster, projects, quizzes, and progress.</p></div>
+            <form id="form-create-class" class="d-flex gap-2 flex-wrap">
+              <input id="new-class-name" class="form-control form-control-sm" required placeholder="Class name" />
+              <input id="new-class-code" class="form-control form-control-sm" required placeholder="Join code" />
+              <input id="new-class-section" class="form-control form-control-sm" value="A" style="max-width: 90px" placeholder="Section" />
+              <button class="btn btn-sm btn-primary" type="submit"><i class="fa-solid fa-plus me-1"></i> Create Class</button>
+            </form>
+          </div>
+          <div class="d-flex align-items-center gap-2 mt-3"><label class="small fw-bold mb-0" for="faculty-class-switcher">View class</label><select id="faculty-class-switcher" class="form-select form-select-sm" style="max-width: 360px">${(state.classes || []).map(item => `<option value="${item.id}" ${state.activeClass?.id === item.id ? "selected" : ""}>${item.name} · ${item.joinCode}</option>`).join("")}</select></div>
+          <div class="small text-muted mt-3">Active class: <strong>${state.activeClass ? `${state.activeClass.name} (${state.activeClass.joinCode})` : "Not selected"}</strong></div>
         </div>
 
         <!-- Human-In-The-Loop AI Review Queue (Supports Technical DL Code & Loss Curves) -->
@@ -1223,9 +1321,13 @@ class AppController {
                           <small class="text-dark d-block mb-1"><strong>AI Note:</strong> ${item.verification.aiExplanation}</small>
                         </div>
 
+                        <div class="mb-2">
+                          <label class="form-label small fw-bold mb-1" for="award-points-${item.id}">Award points (max ${state.activities.find(task => task.id === item.taskId)?.points || (isDl ? 300 : 150)})</label>
+                          <input id="award-points-${item.id}" class="form-control form-control-sm faculty-award-points" data-max-points="${state.activities.find(task => task.id === item.taskId)?.points || (isDl ? 300 : 150)}" type="number" min="0" max="${state.activities.find(task => task.id === item.taskId)?.points || (isDl ? 300 : 150)}" value="${state.activities.find(task => task.id === item.taskId)?.points || (isDl ? 300 : 150)}" />
+                        </div>
                         <div class="d-flex gap-2">
                           <button class="btn btn-sm btn-success flex-grow-1 btn-faculty-approve" data-sub-id="${item.id}">
-                            <i class="fa-solid fa-check me-1"></i> Approve (+${isDl ? '300' : '150'} pts)
+                            <i class="fa-solid fa-check me-1"></i> Approve & Award
                           </button>
                           <button class="btn btn-sm btn-danger flex-grow-1 btn-faculty-reject" data-sub-id="${item.id}">
                             <i class="fa-solid fa-xmark me-1"></i> Request Refactor
@@ -1284,11 +1386,35 @@ class AppController {
       </div>
     `;
 
+    document.getElementById("form-create-class")?.addEventListener("submit", async event => {
+      event.preventDefault();
+      try {
+        const createdClass = await window.appState.createClass(
+          document.getElementById("new-class-name").value.trim(),
+          document.getElementById("new-class-code").value.trim(),
+          document.getElementById("new-class-section").value.trim()
+        );
+        alert(`Class created. Share join code ${createdClass.joinCode} with students.`);
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+    document.getElementById("faculty-class-switcher")?.addEventListener("change", async event => {
+      try {
+        await window.appState.selectClass(event.target.value);
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
     container.querySelectorAll(".btn-faculty-approve").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-sub-id");
-        window.appState.reviewSubmission(id, "approve", "Approved by Faculty Mentor.");
-        alert("✅ Submission Approved! SDG Points credited to student.");
+        const pointsInput = document.getElementById(`award-points-${id}`);
+        const maxPoints = Number(pointsInput?.dataset.maxPoints || 0);
+        const points = Math.max(0, Math.min(maxPoints, Number(pointsInput?.value || 0)));
+        window.appState.reviewSubmission(id, "approve", "Approved by Faculty Mentor.", points);
+        alert(`✅ Submission Approved! ${points} SDG points credited to the student.`);
       });
     });
 
@@ -1304,10 +1430,10 @@ class AppController {
     });
 
     container.querySelectorAll(".btn-assign-student-direct").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const stuId = btn.getAttribute("data-student-id");
         const targetStudent = students.find(s => s.id === stuId);
-        const dynamicTask = window.sdgAiEngine.generateDynamicTaskForStudent(targetStudent);
+        const dynamicTask = await window.sdgAiEngine.suggestTaskForStudent(targetStudent);
         window.appState.state.activities.unshift(dynamicTask);
         window.appState.assignTaskToStudent(dynamicTask.id, stuId);
         alert(`🌟 Task "${dynamicTask.title}" directly assigned to ${targetStudent.name}!`);
@@ -1532,6 +1658,15 @@ class AppController {
         const location = document.getElementById("submission-location")?.value.trim() || "Campus Grounds";
         const file = imageInput ? imageInput.files[0] : null;
 
+        if (!isDl && !file) {
+          alert("A proof photo is required for field activities.");
+          return;
+        }
+        if (file && (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024)) {
+          alert("Evidence must be an image smaller than 5 MB.");
+          return;
+        }
+
         const submitBtn = form.querySelector("button[type='submit']");
         if (submitBtn) {
           submitBtn.disabled = true;
@@ -1581,16 +1716,19 @@ class AppController {
         }
 
         if (aiAnalysisBox) {
+          const isVerified = verification.status === "Verified";
+          const resultClass = isVerified ? "bg-success-soft border-success" : "bg-warning-subtle border-warning";
+          const resultText = isVerified ? "Verification complete" : "Needs faculty review";
           aiAnalysisBox.innerHTML = `
-            <div class="p-3 rounded-3 border bg-success-soft border-success animate-fade-in">
+            <div class="p-3 rounded-3 border ${resultClass} animate-fade-in">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <strong class="text-success">🎉 ${isDl ? `Milestone ${milestoneIndex} Code Verified` : 'AI Verification Passed'}</strong>
-                <span class="badge bg-success text-white">Certainty: ${verification.aiConfidence}%</span>
+                <strong class="${isVerified ? "text-success" : "text-warning-emphasis"}">${resultText}</strong>
+                <span class="badge ${isVerified ? "bg-success" : "bg-warning text-dark"}">Confidence: ${verification.aiConfidence}%</span>
               </div>
               <p class="small mb-1">${verification.aiExplanation}</p>
               <small class="text-muted d-block">${verification.metadataIntegrity}</small>
               <div class="alert alert-info py-1 mb-0 mt-2 small text-center">
-                ${isDl ? `Milestone ${milestoneIndex} logged. Progress updated to ${milestoneIndex * 25}%!` : 'SDG Points credited to your profile!'}
+                ${isVerified ? 'SDG Points credited to your profile!' : 'No points were credited. Faculty must review this evidence.'}
               </div>
             </div>
           `;

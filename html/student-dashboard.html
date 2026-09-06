@@ -31,6 +31,8 @@
         <div>
           <span class="brand-logo-text">SDG <span class="text-success">Antigravity</span></span>
           <span class="badge bg-success-soft text-success ms-1 small">Student Portal</span>
+          <span class="badge bg-light text-muted ms-1 small" id="nav-student-college">College Workspace</span>
+          <span class="badge bg-light text-muted ms-1 small" id="nav-student-class">Class Workspace</span>
         </div>
       </a>
 
@@ -240,6 +242,10 @@
           if (profileDropdown) profileDropdown.classList.remove("d-none");
           const nameEl = document.getElementById("nav-student-name");
           if (nameEl) nameEl.textContent = s.currentUser.name;
+          const collegeEl = document.getElementById("nav-student-college");
+          if (collegeEl && s.college) collegeEl.textContent = s.college.name;
+          const classEl = document.getElementById("nav-student-class");
+          if (classEl && s.activeClass) classEl.textContent = `${s.activeClass.name} · ${s.activeClass.joinCode}`;
           if (s.currentUser.avatar) {
             const avatarEl = document.getElementById("nav-student-avatar");
             if (avatarEl) avatarEl.src = s.currentUser.avatar;

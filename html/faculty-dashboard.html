@@ -31,6 +31,8 @@
         <div>
           <span class="brand-logo-text">SDG <span class="text-primary">Antigravity</span></span>
           <span class="badge bg-info-soft text-info ms-1 small">Faculty Portal</span>
+          <span class="badge bg-light text-muted ms-1 small" id="nav-faculty-college">College Workspace</span>
+          <span class="badge bg-light text-muted ms-1 small" id="nav-faculty-class">Class Workspace</span>
         </div>
       </a>
 
@@ -89,6 +91,9 @@
         <button class="subnav-tab-btn" data-faculty-tab="activity-creation">
           <i class="fa-solid fa-plus-circle"></i> Activity & DL Project Creation
         </button>
+        <button class="subnav-tab-btn" data-faculty-tab="quiz-creation">
+          <i class="fa-solid fa-circle-question"></i> Quiz Builder
+        </button>
       </nav>
 
       <div id="faculty-subpage-container">
@@ -123,6 +128,10 @@
           if (profileDropdown) profileDropdown.classList.remove("d-none");
           const nameEl = document.getElementById("nav-faculty-name");
           if (nameEl) nameEl.textContent = s.currentUser.name;
+          const collegeEl = document.getElementById("nav-faculty-college");
+          if (collegeEl && s.college) collegeEl.textContent = s.college.name;
+          const classEl = document.getElementById("nav-faculty-class");
+          if (classEl && s.activeClass) classEl.textContent = `${s.activeClass.name} · ${s.activeClass.joinCode}`;
           if (s.currentUser.avatar) {
             const avatarEl = document.getElementById("nav-faculty-avatar");
             if (avatarEl) avatarEl.src = s.currentUser.avatar;
