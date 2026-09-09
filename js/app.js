@@ -465,6 +465,9 @@ class AppController {
       case "leaderboard":
         this.renderStudentLeaderboardPage(container, student, state);
         break;
+      case "portfolio":
+        this.renderStudentPortfolioPage(container, student, state);
+        break;
       default:
         this.renderStudentProgressPage(container, student, state);
     }
@@ -528,6 +531,19 @@ class AppController {
             ${state.activeClass ? `<span class="badge bg-success-soft text-success">${state.activeClass.joinCode}</span>` : `<form id="form-join-class" class="d-flex gap-2"><input id="student-class-join-code" class="form-control form-control-sm" required placeholder="Class join code" /><button class="btn btn-sm btn-success" type="submit"><i class="fa-solid fa-right-to-bracket me-1"></i> Join</button></form>`}
           </div>
         </div>
+
+        ${(state.studentImpact || []).length ? `
+        <div class="card-glass p-4 mb-4 border-start border-success border-4">
+          <h5 class="fw-bold mb-3"><i class="fa-solid fa-leaf text-success me-1"></i> Your Measurable Impact</h5>
+          <div class="row g-3">
+            ${(state.studentImpact || []).map(item => `
+              <div class="col-md-4"><div class="p-3 bg-light rounded-3 border text-center">
+                <strong class="d-block fs-4 text-success">${item.total}</strong>
+                <small class="text-muted">${item.metricType.replace(/_/g, " ")} (${item.unit})</small>
+              </div></div>
+            `).join("")}
+          </div>
+        </div>` : ""}
 
         <!-- Visual Graphs & AI Recommendations Row -->
         <div class="row g-4 mb-4">
@@ -1154,8 +1170,60 @@ class AppController {
       this.renderFacultyProgressPage(container, faculty, state);
     } else if (subPage === "activity-creation") {
       this.renderFacultyActivityCreationPage(container, faculty, state);
+    } else if (subPage === "analytics") {
+      this.renderFacultyAnalyticsPage(container, faculty, state);
     } else {
       this.renderFacultyQuizCreationPage(container, faculty, state);
+    }
+  }
+
+  async renderFacultyAnalyticsPage(container, faculty, state) {
+    container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="text-muted mt-2">Loading analytics...</p></div>`;
+    try {
+      const analytics = await window.appState.fetchFacultyAnalytics();
+      const impact = state.impactSummary || { totals: [], bySdg: [] };
+      container.innerHTML = `
+        <div class="animate-fade-in">
+          <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div><h3 class="fw-bold mb-1">Analytics & Campus Impact</h3><p class="text-muted mb-0">Participation, SDG coverage, and measurable sustainability outcomes.</p></div>
+          </div>
+          <div class="row g-4 mb-4">
+            <div class="col-md-3"><div class="card-glass p-4 text-center"><small class="text-muted">Students</small><h2 class="fw-bold mb-0">${analytics.studentCount}</h2></div></div>
+            <div class="col-md-3"><div class="card-glass p-4 text-center"><small class="text-muted">Total Submissions</small><h2 class="fw-bold mb-0">${analytics.submissions.total}</h2></div></div>
+            <div class="col-md-3"><div class="card-glass p-4 text-center"><small class="text-muted">Verified</small><h2 class="fw-bold text-success mb-0">${analytics.submissions.verified}</h2></div></div>
+            <div class="col-md-3"><div class="card-glass p-4 text-center"><small class="text-muted">Pending Review</small><h2 class="fw-bold text-danger mb-0">${analytics.pendingReviews}</h2></div></div>
+          </div>
+          <div class="row g-4">
+            <div class="col-lg-6"><div class="card-glass p-4"><h5 class="fw-bold mb-3">SDG Activity Heatmap</h5>${analytics.sdgHeatmap.length ? analytics.sdgHeatmap.map(item => `<div class="d-flex justify-content-between border-bottom py-2"><span>SDG ${item.goalId}</span><span class="badge bg-primary">${item.count} submissions</span></div>`).join("") : `<p class="text-muted">No SDG activity yet.</p>`}</div></div>
+            <div class="col-lg-6"><div class="card-glass p-4"><h5 class="fw-bold mb-3">Campus Impact Totals</h5>${impact.totals.length ? impact.totals.map(item => `<div class="d-flex justify-content-between border-bottom py-2"><span>${item.metricType.replace(/_/g, " ")}</span><strong>${item.total} ${item.unit}</strong></div>`).join("") : `<p class="text-muted">Impact metrics appear after verified submissions.</p>`}</div></div>
+          </div>
+          <div class="card-glass p-4 mt-4"><h5 class="fw-bold mb-3">Top Students</h5><div class="table-responsive"><table class="table"><thead><tr><th>Name</th><th>USN</th><th>Points</th><th>Completed</th></tr></thead><tbody>${analytics.topStudents.map(s => `<tr><td>${s.name}</td><td><code>${s.usn || "-"}</code></td><td>${s.points}</td><td>${s.tasks_completed}</td></tr>`).join("")}</tbody></table></div></div>
+        </div>`;
+    } catch (error) {
+      container.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+    }
+  }
+
+  async renderStudentPortfolioPage(container, student, state) {
+    container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
+    try {
+      const response = await fetch("/api/portfolio", { headers: window.appState.authHeaders() });
+      const portfolio = response.ok ? await response.json() : null;
+      container.innerHTML = `
+        <div class="animate-fade-in">
+          <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div><h3 class="fw-bold mb-1">SDG Portfolio & Credentials</h3><p class="text-muted mb-0">Verified achievements, impact, and exportable transcript.</p></div>
+            <button class="btn btn-primary" id="btn-export-portfolio"><i class="fa-solid fa-download me-1"></i> Export JSON</button>
+          </div>
+          <div class="row g-4">
+            <div class="col-lg-4"><div class="card-glass p-4"><h5 class="fw-bold">${student.name}</h5><p class="text-muted small mb-2">${student.usn} · ${student.department}</p><div class="badge bg-warning-soft text-dark mb-2">${student.points || 0} SDG Points</div><div class="d-flex flex-wrap gap-1">${(student.badges || []).map(b => `<span class="badge bg-light border">${b}</span>`).join("")}</div></div></div>
+            <div class="col-lg-8"><div class="card-glass p-4"><h5 class="fw-bold mb-3">Verified Work (${portfolio?.verifiedSubmissions?.length || 0})</h5>${(portfolio?.verifiedSubmissions || []).map(item => `<div class="border-bottom py-2"><strong>${item.taskTitle}</strong><br/><small class="text-muted">SDG ${item.sdgGoalId} · +${item.pointsAwarded} pts · ${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString() : ""}</small></div>`).join("") || `<p class="text-muted">Complete and verify tasks to build your portfolio.</p>`}</div></div>
+          </div>
+          <div class="card-glass p-4 mt-4"><h5 class="fw-bold mb-3">SDG Credentials</h5>${(portfolio?.credentials || []).map(c => `<div class="p-3 bg-light border rounded-3 mb-2 d-flex justify-content-between align-items-center"><div><strong>${c.title}</strong><br/><small class="text-muted">Code: ${c.verificationCode}</small></div><a href="verify-credential.html?code=${c.verificationCode}" class="btn btn-sm btn-outline-primary">Verify</a></div>`).join("") || `<p class="text-muted">Credentials are issued when faculty approves your submissions.</p>`}</div>
+        </div>`;
+      document.getElementById("btn-export-portfolio")?.addEventListener("click", () => window.appState.exportPortfolio());
+    } catch (error) {
+      container.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
     }
   }
 

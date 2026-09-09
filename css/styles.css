@@ -240,6 +240,97 @@ body {
   max-width: 580px;
 }
 
+/* Split Layout Additions */
+.auth-split-layout {
+  display: flex;
+  min-height: calc(100vh - 70px);
+  width: 100%;
+}
+
+.auth-left-pane {
+  display: none;
+}
+
+.auth-right-pane {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+@media (min-width: 992px) {
+  .auth-left-pane {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 45%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(241, 245, 249, 0.8));
+    border-right: 1px solid var(--border-card);
+    padding: 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  [data-theme="dark"] .auth-left-pane {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.9));
+  }
+
+  .auth-left-pane::before {
+    content: '';
+    position: absolute;
+    top: -150px;
+    left: -150px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(5, 150, 105, 0.08) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+  }
+
+  .auth-left-pane::after {
+    content: '';
+    position: absolute;
+    bottom: -150px;
+    right: -150px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(2, 132, 199, 0.08) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+  }
+
+  .auth-right-pane {
+    width: 55%;
+    padding: 60px;
+    background: var(--bg-main);
+  }
+  
+  .auth-right-pane .auth-card {
+    max-width: 650px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0 !important;
+  }
+}
+
+/* Form Groupings */
+.form-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  margin-top: 28px;
+}
+.form-section-title:first-child {
+  margin-top: 0;
+}
+
 .auth-nav-pills {
   display: flex;
   background: #f1f5f9;

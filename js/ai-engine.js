@@ -71,10 +71,13 @@ class SdgAiEngine {
   }
 
   async suggestTaskForStudent(student, targetGoalId = null) {
+    const token = localStorage.getItem("SDG_SESSION_TOKEN");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
     try {
       const response = await fetch("/api/ai/task-suggestion", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ student, goals: window.SDG_DATA.goals })
       });
       if (!response.ok) throw new Error("Vision LLM unavailable");
@@ -252,59 +255,47 @@ class SdgAiEngine {
     return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // 3. Autonomous AI Task Assigner (Dynamically generates Technical DL Projects for CS students)
+  // 3. Autonomous AI Task Assigner (Dynamically generates Technical Projects based on actual skills)
   generateDynamicTaskForStudent(student, targetGoalId = null) {
     const goals = window.SDG_DATA.goals;
-    const selectedGoal = targetGoalId 
-      ? goals.find(g => g.id === parseInt(targetGoalId)) 
-      : goals[Math.floor(Math.random() * goals.length)];
+    
+    // Find goal matching student interests
+    let selectedGoal;
+    if (targetGoalId) {
+      selectedGoal = goals.find(g => g.id === parseInt(targetGoalId));
+    } else if (student.interests && student.interests.length > 0) {
+      const interestStr = student.interests.join(" ").toLowerCase();
+      // Simple heuristic match based on keywords
+      selectedGoal = goals.find(g => interestStr.includes(g.name.toLowerCase()) || interestStr.includes(g.shortName.toLowerCase()) || g.name.toLowerCase().includes(student.interests[0].toLowerCase()));
+    }
+    
+    if (!selectedGoal) {
+      selectedGoal = goals[Math.floor(Math.random() * goals.length)];
+    }
 
-    const studentSkills = (student.skills || ["Innovation"]);
+    const studentSkills = (student.skills && student.skills.length > 0) ? student.skills : ["Innovation"];
     const isCsStudent = (student.department && student.department.toLowerCase().includes("comp")) || 
-                        studentSkills.some(s => s.toLowerCase().includes("python") || s.toLowerCase().includes("deep") || s.toLowerCase().includes("ai"));
+                        studentSkills.some(s => s.toLowerCase().includes("python") || s.toLowerCase().includes("java") || s.toLowerCase().includes("code") || s.toLowerCase().includes("software") || s.toLowerCase().includes("web") || s.toLowerCase().includes("app") || s.toLowerCase().includes("deep") || s.toLowerCase().includes("ai"));
 
     if (isCsStudent) {
-      // Generate a 4-Milestone Deep Learning / Technical Mini-Project!
-      const dlProjects = [
-        {
-          title: `Deep Learning Computer Vision Classifier for SDG ${selectedGoal.id}: ${selectedGoal.shortName}`,
-          goalId: selectedGoal.id,
-          taskType: "technical_dl_project",
-          points: 300,
-          difficulty: "Advanced",
-          matchedSkills: ["Python", "Deep Learning", "PyTorch", "Computer Vision"],
-          description: `Train a Convolutional Neural Network (CNN / YOLOv8 / ResNet) in PyTorch to automate campus detection and monitoring supporting ${selectedGoal.name}.`,
-          verificationRules: "Submit all 4 Milestones: Dataset, GitHub repo, Training loss curves (>90% accuracy), and a working demo link.",
-          milestones: [
-            { index: 1, title: "Dataset Curation & Prep", weight: 25, deliverables: "Dataset link with annotation labels" },
-            { index: 2, title: "Model Code & Architecture", weight: 25, deliverables: "GitHub repo link with PyTorch model" },
-            { index: 3, title: "Loss Curve Optimization", weight: 25, deliverables: "Training vs Validation loss plot" },
-            { index: 4, title: "Live Inference Demo", weight: 25, deliverables: "Demo URL & SDG Impact Report" }
-          ]
-        },
-        {
-          title: `LSTM Time-Series Neural Forecaster for Campus ${selectedGoal.shortName}`,
-          goalId: selectedGoal.id,
-          taskType: "technical_dl_project",
-          points: 280,
-          difficulty: "Advanced",
-          matchedSkills: ["Python", "Deep Learning", "LSTM", "Time-Series"],
-          description: `Build an LSTM recurrent neural network to predict campus energy, water, or resource consumption patterns for SDG ${selectedGoal.id}.`,
-          verificationRules: "Submit GitHub repo with sliding-window preprocessing, train/test MAE loss curves, and prediction overlay chart.",
-          milestones: [
-            { index: 1, title: "Time Series Telemetry Data", weight: 25, deliverables: "Historical campus sensor dataset" },
-            { index: 2, title: "LSTM Model Design", weight: 25, deliverables: "GitHub repo with train.py" },
-            { index: 3, title: "Loss Curves & RMSE", weight: 25, deliverables: "Loss plot & RMSE < 0.15" },
-            { index: 4, title: "Forecast Dashboard", weight: 25, deliverables: "Prediction overlay demo" }
-          ]
-        }
-      ];
-
-      const chosen = dlProjects[Math.floor(Math.random() * dlProjects.length)];
+      const primarySkill = studentSkills[0];
       return {
-        id: "TASK-DL-" + Math.floor(200 + Math.random() * 800),
-        ...chosen,
-        department: student.department || "Computer Science & Engineering",
+        id: "TASK-TECH-" + Math.floor(200 + Math.random() * 800),
+        title: `${primarySkill} Solution for SDG ${selectedGoal.id}: ${selectedGoal.shortName}`,
+        goalId: selectedGoal.id,
+        taskType: "technical_dl_project",
+        points: 300,
+        difficulty: "Advanced",
+        matchedSkills: studentSkills,
+        description: `Develop a technical project using ${primarySkill} to solve a challenge related to ${selectedGoal.name}.`,
+        verificationRules: `Submit GitHub repo link and a working demo or screenshots of your ${primarySkill} solution.`,
+        milestones: [
+          { index: 1, title: "Requirements & Architecture", weight: 25, deliverables: "System design and environment setup" },
+          { index: 2, title: "Core Implementation", weight: 25, deliverables: `GitHub repo with initial ${primarySkill} codebase` },
+          { index: 3, title: "Testing & Validation", weight: 25, deliverables: "Test results and optimization" },
+          { index: 4, title: "Final Deployment", weight: 25, deliverables: "Live Demo URL & SDG Impact Report" }
+        ],
+        department: student.department || "All Departments",
         deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         status: "Active",
         isAiGenerated: true,

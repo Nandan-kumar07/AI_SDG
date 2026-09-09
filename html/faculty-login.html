@@ -36,138 +36,157 @@
     </div>
   </nav>
 
-  <main class="auth-wrapper">
-    <div class="card-glass auth-card p-4 p-md-5">
-      <div class="text-center mb-4">
-        <div class="brand-logo-icon mx-auto mb-2" style="width: 48px; height: 48px; font-size: 1.4rem; background: linear-gradient(135deg, #0284c7, #6366f1);">
+  <main class="auth-split-layout">
+    <!-- Left Decorative Pane -->
+    <div class="auth-left-pane">
+      <div class="text-center" style="z-index: 1;">
+        <div class="brand-logo-icon mx-auto mb-4" style="width: 72px; height: 72px; font-size: 2rem; background: linear-gradient(135deg, #0284c7, #6366f1);">
           <i class="fa-solid fa-chalkboard-user"></i>
         </div>
-        <h3 class="fw-bold mb-1">Faculty & Admin Portal</h3>
-        <p class="text-muted small">Monitor student progress, review submissions & create SDG activities</p>
+        <h2 class="fw-bold mb-3" style="font-size: 2.2rem;">Faculty & Admin Portal</h2>
+        <p class="text-muted fs-5 mb-0" style="max-width: 400px; margin: 0 auto;">Monitor student progress, review submissions & create SDG activities.</p>
       </div>
+    </div>
 
-      <div class="auth-nav-pills">
-        <button id="faculty-tab-login" class="active">Faculty Sign In</button>
-        <button id="faculty-tab-signup">Faculty Registration</button>
-      </div>
+    <!-- Right Auth Form Pane -->
+    <div class="auth-right-pane">
+      <div class="card-glass auth-card p-4 p-md-5">
+        <!-- Optional Mobile Header -->
+        <div class="text-center mb-4 d-lg-none">
+          <div class="brand-logo-icon mx-auto mb-2" style="width: 48px; height: 48px; font-size: 1.4rem; background: linear-gradient(135deg, #0284c7, #6366f1);">
+            <i class="fa-solid fa-chalkboard-user"></i>
+          </div>
+          <h3 class="fw-bold mb-1">Faculty Portal</h3>
+        </div>
 
-      <!-- Faculty Login Form -->
-      <div id="faculty-form-login-box">
-        <form id="form-faculty-login">
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Faculty Institutional Email</label>
-            <div class="input-group">
-              <span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-muted"></i></span>
-              <input type="email" id="faculty-login-email" class="form-control" placeholder="sarah.johnson@campus.edu" value="sarah.johnson@campus.edu" required />
+        <div class="auth-nav-pills">
+          <button id="faculty-tab-login" class="active">Faculty Sign In</button>
+          <button id="faculty-tab-signup">Faculty Registration</button>
+        </div>
+
+        <!-- Faculty Login Form -->
+        <div id="faculty-form-login-box">
+          <form id="form-faculty-login">
+            <div class="form-section-title">Account Login</div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Faculty Institutional Email</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-muted"></i></span>
+                <input type="email" id="faculty-login-email" class="form-control" placeholder="sarah.johnson@campus.edu" value="sarah.johnson@campus.edu" required />
+              </div>
             </div>
-          </div>
 
-          <div class="mb-3">
-            <label class="form-label small fw-bold">College Join Code</label>
-            <input type="text" id="faculty-login-college-code" class="form-control" placeholder="e.g. CAMPUS001" value="CAMPUS001" required />
-          </div>
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Class Join Code</label>
-            <input type="text" id="faculty-login-class-code" class="form-control" placeholder="Optional class code" value="" />
-          </div>
-
-          <div class="mb-3">
-            <div class="d-flex justify-content-between align-items-center">
-              <label class="form-label small fw-bold mb-0">Password</label>
-              <a href="forgot-password.html" class="small text-primary text-decoration-none">Forgot Password?</a>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">College Join Code</label>
+              <input type="text" id="faculty-login-college-code" class="form-control" placeholder="e.g. CAMPUS001" value="CAMPUS001" required />
             </div>
-            <div class="input-group mt-1">
-              <span class="input-group-text bg-light"><i class="fa-solid fa-lock text-muted"></i></span>
-              <input type="password" id="faculty-login-pass" class="form-control" placeholder="••••••••" value="password123" required />
+            <div class="mb-3 d-none">
+              <label class="form-label small fw-bold">Class Join Code</label>
+              <input type="text" id="faculty-login-class-code" class="form-control" placeholder="Optional class code" value="" />
             </div>
-          </div>
 
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Security Captcha</label>
-            <div class="captcha-container mb-2">
-              <span class="captcha-badge" id="captcha-display-faculty">5M9R4</span>
-              <button type="button" class="btn btn-sm btn-link text-decoration-none" id="btn-refresh-captcha-faculty">
-                <i class="fa-solid fa-rotate"></i>
-              </button>
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <label class="form-label small fw-bold mb-0">Password</label>
+                <a href="forgot-password.html" class="small text-primary text-decoration-none">Forgot Password?</a>
+              </div>
+              <div class="input-group mt-1">
+                <span class="input-group-text bg-light"><i class="fa-solid fa-lock text-muted"></i></span>
+                <input type="password" id="faculty-login-pass" class="form-control" placeholder="••••••••" required />
+              </div>
             </div>
-            <input type="text" id="faculty-login-captcha" class="form-control form-control-sm" placeholder="Enter characters shown above" required />
-          </div>
 
-          <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
-            <i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Access Faculty Dashboard
-          </button>
-        </form>
-      </div>
-
-      <!-- Faculty Sign Up Form -->
-      <div id="faculty-form-signup-box" class="d-none">
-        <form id="form-faculty-signup">
-          <div class="mb-2 d-none">
-            <label class="form-label small fw-bold">Faculty Name</label>
-            <input type="text" id="faculty-signup-name" class="form-control form-control-sm" placeholder="Dr. Deepa Nair" required />
-          </div>
-
-          <div class="row g-2 mb-2">
-            <div class="col-md-6">
-              <label class="form-label small fw-bold">Department (DEPT)</label>
-              <select id="faculty-signup-dept" class="form-select form-select-sm" required>
-                <option value="Computer Science & Engineering">Computer Science & Engineering</option>
-                <option value="Artificial Intelligence & ML">Artificial Intelligence & ML</option>
-                <option value="Environmental Engineering">Environmental Engineering</option>
-                <option value="Electrical & Electronics Eng">Electrical & Electronics Eng</option>
-                <option value="Mechanical Engineering">Mechanical Engineering</option>
-              </select>
+            <div class="mb-4">
+              <label class="form-label small fw-bold">Security Captcha</label>
+              <div class="captcha-container mb-2">
+                <span class="captcha-badge" id="captcha-display-faculty">5M9R4</span>
+                <button type="button" class="btn btn-sm btn-link text-decoration-none" id="btn-refresh-captcha-faculty">
+                  <i class="fa-solid fa-rotate"></i>
+                </button>
+              </div>
+              <input type="text" id="faculty-login-captcha" class="form-control form-control-sm" placeholder="Enter characters shown above" required />
             </div>
-            <div class="col-md-6">
-              <label class="form-label small fw-bold">Phone Number</label>
-              <input type="tel" id="faculty-signup-phone" class="form-control form-control-sm" placeholder="+91 98800 12345" required />
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">
+              <i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Access Faculty Dashboard
+            </button>
+          </form>
+        </div>
+
+        <!-- Faculty Sign Up Form -->
+        <div id="faculty-form-signup-box" class="d-none">
+          <form id="form-faculty-signup">
+            <div class="form-section-title">Personal Information</div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Faculty Name</label>
+              <input type="text" id="faculty-signup-name" class="form-control form-control-sm" placeholder="Dr. Deepa Nair" required />
             </div>
-          </div>
 
-          <div class="mb-2 d-none">
-            <label class="form-label small fw-bold">Institutional Email</label>
-            <input type="email" id="faculty-signup-email" class="form-control form-control-sm" placeholder="faculty@campus.edu" required />
-          </div>
-
-          <div class="mb-2">
-            <label class="form-label small fw-bold">Existing College Join Code</label>
-            <input type="text" id="faculty-signup-college-code" class="form-control form-control-sm" placeholder="Join an existing college" value="CAMPUS001" />
-          </div>
-
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="faculty-create-college" />
-            <label class="form-check-label small" for="faculty-create-college">Create a new college workspace instead</label>
-          </div>
-          <div class="mb-2 d-none" id="new-college-fields">
-            <input type="text" id="faculty-college-name" class="form-control form-control-sm mb-2" placeholder="New college name" />
-            <input type="text" id="faculty-college-join-code" class="form-control form-control-sm" placeholder="Choose a join code, e.g. GREENUNI01" />
-          </div>
-          <div class="mb-2">
-            <label class="form-label small fw-bold">Class Join Code</label>
-            <input type="text" id="faculty-signup-class-code" class="form-control form-control-sm" placeholder="Optional class code" value="" />
-          </div>
-          <div class="mb-2 d-none" id="new-class-fields">
-            <input type="text" id="faculty-class-name" class="form-control form-control-sm mb-2" placeholder="New class name" />
-            <input type="text" id="faculty-class-join-code" class="form-control form-control-sm" placeholder="Choose a class code, e.g. CSE-A01" />
-          </div>
-
-          <div class="mb-2">
-            <label class="form-label small fw-bold">Password</label>
-            <input type="password" id="faculty-signup-pass" class="form-control form-control-sm" placeholder="••••••••" required />
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label small fw-bold">Security Captcha</label>
-            <div class="captcha-container mb-2">
-              <span class="captcha-badge" id="captcha-display-faculty-signup">4T8B1</span>
+            <div class="row g-2 mb-2">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Department (DEPT)</label>
+                <select id="faculty-signup-dept" class="form-select form-select-sm" required>
+                  <option value="Computer Science & Engineering">Computer Science & Engineering</option>
+                  <option value="Artificial Intelligence & ML">Artificial Intelligence & ML</option>
+                  <option value="Environmental Engineering">Environmental Engineering</option>
+                  <option value="Electrical & Electronics Eng">Electrical & Electronics Eng</option>
+                  <option value="Mechanical Engineering">Mechanical Engineering</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Phone Number</label>
+                <input type="tel" id="faculty-signup-phone" class="form-control form-control-sm" placeholder="+91 98800 12345" required />
+              </div>
             </div>
-            <input type="text" id="faculty-signup-captcha" class="form-control form-control-sm" placeholder="Enter captcha code" required />
-          </div>
 
-          <button type="submit" class="btn btn-info w-100 py-2 fw-bold text-white">
-            <i class="fa-solid fa-user-tie me-2"></i> Register Faculty Account
-          </button>
-        </form>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Institutional Email</label>
+              <input type="email" id="faculty-signup-email" class="form-control form-control-sm" placeholder="faculty@campus.edu" required />
+            </div>
+
+            <div class="form-section-title">College Configuration</div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Existing College Join Code</label>
+              <input type="text" id="faculty-signup-college-code" class="form-control form-control-sm" placeholder="Join an existing college" value="CAMPUS001" />
+            </div>
+
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="faculty-create-college" />
+              <label class="form-check-label small" for="faculty-create-college">Create a new college workspace instead</label>
+            </div>
+            
+            <div class="mb-2 d-none" id="new-college-fields">
+              <input type="text" id="faculty-college-name" class="form-control form-control-sm mb-2" placeholder="New college name" />
+              <input type="text" id="faculty-college-join-code" class="form-control form-control-sm" placeholder="Choose a join code, e.g. GREENUNI01" />
+            </div>
+            <div class="mb-2 d-none">
+              <label class="form-label small fw-bold">Class Join Code</label>
+              <input type="text" id="faculty-signup-class-code" class="form-control form-control-sm" placeholder="Optional class code" value="" />
+            </div>
+            <div class="mb-2 d-none" id="new-class-fields">
+              <input type="text" id="faculty-class-name" class="form-control form-control-sm mb-2" placeholder="New class name" />
+              <input type="text" id="faculty-class-join-code" class="form-control form-control-sm" placeholder="Choose a class code, e.g. CSE-A01" />
+            </div>
+
+            <div class="form-section-title">Security Settings</div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Password</label>
+              <input type="password" id="faculty-signup-pass" class="form-control form-control-sm" placeholder="••••••••" required />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Security Captcha</label>
+              <div class="captcha-container mb-2">
+                <span class="captcha-badge" id="captcha-display-faculty-signup">4T8B1</span>
+              </div>
+              <input type="text" id="faculty-signup-captcha" class="form-control form-control-sm" placeholder="Enter captcha code" required />
+            </div>
+
+            <button type="submit" class="btn btn-info w-100 py-2 fw-bold text-white shadow-sm">
+              <i class="fa-solid fa-user-tie me-2"></i> Register Faculty Account
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </main>

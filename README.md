@@ -9,10 +9,15 @@
    npm install
    ```
 
-3. Set the database connection string in the shell before starting. On Git Bash:
+3. Create a `.env` file in this directory (or copy from `.env.example`) and set your PostgreSQL password:
 
    ```sh
-   export DATABASE_URL='postgresql://postgres:YOUR_POSTGRES_PASSWORD@localhost:5432/sdg_connect'
+   DATABASE_URL=postgresql://postgres:YOUR_POSTGRES_PASSWORD@localhost:5432/sdg_connect
+   ```
+
+4. Start the server:
+
+   ```sh
    npm start
    ```
 

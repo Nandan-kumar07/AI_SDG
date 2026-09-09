@@ -94,6 +94,9 @@
         <button class="subnav-tab-btn" data-faculty-tab="quiz-creation">
           <i class="fa-solid fa-circle-question"></i> Quiz Builder
         </button>
+        <button class="subnav-tab-btn" data-faculty-tab="analytics">
+          <i class="fa-solid fa-chart-line"></i> Analytics & Impact
+        </button>
       </nav>
 
       <div id="faculty-subpage-container">
@@ -146,9 +149,10 @@
       window.appState.subscribe(applyAuthGuard);
 
       // 1-Click Instant Demo Faculty Access
-      document.getElementById("btn-quick-demo-faculty")?.addEventListener("click", () => {
-        window.appState.loginFaculty("sarah.johnson@campus.edu", "password123");
-        window.location.reload();
+      document.getElementById("btn-quick-demo-faculty")?.addEventListener("click", async () => {
+        const result = await window.appState.loginFaculty("sarah.johnson@campus.edu", "password123");
+        if (result.success) window.location.reload();
+        else alert(result.message || "Demo login failed.");
       });
 
       document.getElementById("btn-faculty-logout")?.addEventListener("click", async (e) => {

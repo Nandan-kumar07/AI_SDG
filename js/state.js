@@ -14,16 +14,62 @@ class AppState {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
+  applyAuthResult(result) {
+    this.state = {
+      ...this.state,
+      ...result.state,
+      currentUser: result.user || result.state?.currentUser || this.state.currentUser,
+      userRole: result.state?.userRole || this.state.userRole,
+      college: result.college || this.state.college,
+      activeClass: result.activeClass ?? this.state.activeClass,
+      collegeId: result.college?.id || result.state?.collegeId || this.state.collegeId,
+      classId: result.activeClass?.id ?? result.state?.classId ?? this.state.classId
+    };
+  }
+
+  setRoute(route, subPage = null) {
+    this.state.currentRoute = route;
+    if (subPage) {
+      if (route.includes("student")) this.state.studentSubPage = subPage;
+      if (route.includes("faculty")) this.state.facultySubPage = subPage;
+    }
+    this.persistLocalState();
+    const routes = {
+      home: "index.html",
+      "student-auth": "student-login.html",
+      "faculty-auth": "faculty-login.html",
+      "forgot-password": "forgot-password.html",
+      "student-dashboard": "student-dashboard.html",
+      "faculty-dashboard": "faculty-dashboard.html"
+    };
+    const target = routes[route];
+    if (target && !window.location.pathname.endsWith(target)) {
+      window.location.href = target;
+    } else {
+      this.notify();
+    }
+  }
+
+  switchRole(role) {
+    this.setRoute(role === "faculty" ? "faculty-auth" : "student-auth");
+  }
+
   async hydrateFromBackend() {
     try {
       const response = await fetch("/api/state", { headers: this.authHeaders() });
       if (!response.ok) return;
       const backendState = await response.json();
-      this.state = { ...this.state, ...backendState };
+      this.state = {
+        ...this.state,
+        ...backendState,
+        theme: this.state.theme,
+        studentSubPage: this.state.studentSubPage,
+        facultySubPage: this.state.facultySubPage
+      };
       this.persistLocalState();
       this.notify();
     } catch (error) {
-      console.info("Backend unavailable; using local seed state.", error.message);
+      console.warn("Backend unavailable.", error.message);
     }
   }
 
@@ -36,36 +82,65 @@ class AppState {
   }
 
   loadInitialState() {
-    const saved = localStorage.getItem(this.STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed;
-      } catch (e) {
-        console.error("Failed to parse saved state, initializing fresh state", e);
-      }
-    }
-
-    // Default Fresh State: Not logged in (Guest) until explicit login
+    let uiPrefs = {};
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (saved) uiPrefs = JSON.parse(saved);
+    } catch (_e) { /* ignore */ }
     return {
       currentUser: null,
       userRole: "guest",
-      studentSubPage: "progress",
-      facultySubPage: "student-progress",
-
-      activities: [...(window.SDG_DATA?.activities || [])],
-      submissions: [...(window.SDG_DATA?.submissions || [])],
-      students: [...(window.SDG_DATA?.students || [])],
-      faculty: [...(window.SDG_DATA?.faculty || [])],
-      quizzes: [...(window.SDG_DATA?.quizzes || [])],
-
+      currentRoute: "home",
+      studentSubPage: uiPrefs.studentSubPage || "progress",
+      facultySubPage: uiPrefs.facultySubPage || "student-progress",
+      theme: uiPrefs.theme || "light",
+      activities: [],
+      submissions: [],
+      students: [],
+      faculty: [],
+      quizzes: [],
       studentOngoingTasks: [],
       chatHistory: [],
       gameScores: {},
-
-      theme: "light",
-      notifications: []
+      notifications: [],
+      impactSummary: null,
+      studentImpact: null
     };
+  }
+
+  async uploadFile(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      headers: this.authHeaders(),
+      body: formData
+    });
+    if (!response.ok) throw new Error((await response.json()).message || "Upload failed");
+    return response.json();
+  }
+
+  async fetchFacultyAnalytics() {
+    const response = await fetch("/api/analytics/faculty", { headers: this.authHeaders() });
+    if (!response.ok) throw new Error("Could not load analytics");
+    return response.json();
+  }
+
+  async exportPortfolio() {
+    const response = await fetch("/api/portfolio/export", { headers: this.authHeaders() });
+    if (!response.ok) throw new Error("Could not export portfolio");
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sdg-portfolio-${this.state.currentUser?.usn || "student"}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async markNotificationRead(id) {
+    await fetch(`/api/notifications/${id}/read`, { method: "POST", headers: this.authHeaders() });
+    await this.hydrateFromBackend();
   }
 
   save() {
@@ -76,11 +151,10 @@ class AppState {
       body: JSON.stringify(this.state)
     }).then(async response => {
       if (response.ok) {
-        const result = await response.json();
-        if (Number.isInteger(result.revision)) this.state.revision = result.revision;
-        this.persistLocalState();
+        await this.hydrateFromBackend();
       } else if (response.status === 409) {
-        console.warn("State update skipped because another user changed the shared state.");
+        console.warn("State conflict; refreshing from server.");
+        await this.hydrateFromBackend();
       }
     }).catch(() => undefined);
     this.notify();
@@ -120,9 +194,11 @@ class AppState {
       if (response.ok) {
         const result = await response.json();
         if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
-        this.state = { ...this.state, ...result.state };
+        this.applyAuthResult(result);
         if (window.sdgAiEngine && result.user) {
           const assignedTask = await window.sdgAiEngine.suggestTaskForStudent(result.user);
+          assignedTask.collegeId = this.state.collegeId;
+          assignedTask.classId = this.state.classId;
           this.state.activities.unshift(assignedTask);
           this.assignTaskToStudent(assignedTask.id, result.user.id, "ai_agent");
           this.save();
@@ -131,25 +207,14 @@ class AppState {
         this.notify();
         return { success: true, user: result.user, backend: "postgresql" };
       }
+      if (response.status === 401 || response.status === 403 || response.status === 404) {
+        const error = await response.json().catch(() => ({}));
+        return { success: false, message: error.message || "Invalid credentials", backend: "postgresql" };
+      }
     } catch (error) {
-      console.info("Student login API unavailable; using local state.", error.message);
+      console.warn("Student login failed:", error.message);
     }
-    const student = this.state.students.find(
-      s => (s.usn.toLowerCase() === usnOrEmail.toLowerCase() || s.email.toLowerCase() === usnOrEmail.toLowerCase())
-    );
-
-    if (student) {
-      this.state.currentUser = student;
-      this.state.userRole = "student";
-      this.save();
-      return { success: true, user: student, backend: 'localstorage' };
-    }
-
-    return {
-      success: false,
-      message: "Student record not found. Please sign up or connect a backend.",
-      backend: 'localstorage'
-    };
+    return { success: false, message: "Login failed. Check credentials and ensure the server is running.", backend: "postgresql" };
   }
 
   async signupStudent(formData, collegeCode = "CAMPUS001", classCode = "") {
@@ -163,10 +228,14 @@ class AppState {
       if (response.ok) {
         const result = await response.json();
         if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
-        this.state = { ...this.state, ...result.state };
+        this.applyAuthResult(result);
         this.persistLocalState();
         this.notify();
         return { success: true, user: result.user, backend: "postgresql" };
+      }
+      if (response.status === 401 || response.status === 403 || response.status === 404 || response.status === 409) {
+        const error = await response.json().catch(() => ({}));
+        return { success: false, message: error.message || "Signup failed", backend: "postgresql" };
       }
     } catch (error) {
       console.info("Student signup API unavailable; using local state.", error.message);
@@ -198,6 +267,8 @@ class AppState {
 
     if (window.sdgAiEngine) {
       const assignedTask = await window.sdgAiEngine.suggestTaskForStudent(newStudent);
+      assignedTask.collegeId = this.state.collegeId || "college-demo";
+      assignedTask.classId = this.state.classId;
       this.state.activities.unshift(assignedTask);
       this.assignTaskToStudent(assignedTask.id, newStudent.id, "ai_agent");
     }
@@ -217,30 +288,19 @@ class AppState {
       if (response.ok) {
         const result = await response.json();
         if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
-        this.state = { ...this.state, ...result.state };
+        this.applyAuthResult(result);
         this.persistLocalState();
         this.notify();
         return { success: true, user: result.user, backend: "postgresql" };
       }
+      if (response.status === 401 || response.status === 403 || response.status === 404) {
+        const error = await response.json().catch(() => ({}));
+        return { success: false, message: error.message || "Invalid credentials", backend: "postgresql" };
+      }
     } catch (error) {
-      console.info("Faculty login API unavailable; using local state.", error.message);
+      console.warn("Faculty login failed:", error.message);
     }
-    const faculty = this.state.faculty.find(
-      f => f.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (faculty) {
-      this.state.currentUser = faculty;
-      this.state.userRole = "faculty";
-      this.save();
-      return { success: true, user: faculty, backend: 'localstorage' };
-    }
-
-    return {
-      success: false,
-      message: "Faculty record not found. Please sign up or connect a backend.",
-      backend: 'localstorage'
-    };
+    return { success: false, message: "Login failed. Check credentials and ensure the server is running.", backend: "postgresql" };
   }
 
   async signupFaculty(formData, collegeCode = "CAMPUS001", createCollege = false, classCode = "") {
@@ -254,10 +314,14 @@ class AppState {
       if (response.ok) {
         const result = await response.json();
         if (result.token) localStorage.setItem("SDG_SESSION_TOKEN", result.token);
-        this.state = { ...this.state, ...result.state };
+        this.applyAuthResult(result);
         this.persistLocalState();
         this.notify();
         return { success: true, user: result.user, backend: "postgresql" };
+      }
+      if (response.status === 401 || response.status === 403 || response.status === 404 || response.status === 409) {
+        const error = await response.json().catch(() => ({}));
+        return { success: false, message: error.message || "Signup failed", backend: "postgresql" };
       }
     } catch (error) {
       console.info("Faculty signup API unavailable; using local state.", error.message);
@@ -468,7 +532,19 @@ class AppState {
     return newSub;
   }
 
-  reviewSubmission(submissionId, decision, feedback = "", awardedPoints = null) {
+  async reviewSubmission(submissionId, decision, feedback = "", awardedPoints = null) {
+    try {
+      const response = await fetch(`/api/submissions/${submissionId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...this.authHeaders() },
+        body: JSON.stringify({ decision, feedback, awardedPoints })
+      });
+      if (response.ok) {
+        await this.hydrateFromBackend();
+        return true;
+      }
+    } catch (_error) { /* fall through to local */ }
+
     const sub = this.state.submissions.find(s => s.id === submissionId);
     if (!sub) return null;
 
