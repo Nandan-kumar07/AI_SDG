@@ -5,7 +5,11 @@
   "description": "SDG Connect campus sustainability platform",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "vercel-build": "echo 'Build complete'"
+  },
+  "engines": {
+    "node": ">=18.x"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
