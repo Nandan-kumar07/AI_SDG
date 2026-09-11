@@ -15,10 +15,5 @@
       "src": "/(.*)",
       "dest": "/api/index.js"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database-url",
-    "SESSION_SECRET": "@session-secret",
-    "ANTHROPIC_API_KEY": "@anthropic-api-key"
-  }
+  ]
 }

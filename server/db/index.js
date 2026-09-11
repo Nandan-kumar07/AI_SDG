@@ -445,13 +445,15 @@ async function migrateFromLegacyJson(client) {
 }
 
 async function initializeDatabase() {
-  const adminPool = new Pool({ ...poolConfig, database: "postgres" });
-  try {
-    await adminPool.query("CREATE DATABASE sdg_connect");
-  } catch (error) {
-    if (error.code !== "42P04") throw error;
-  } finally {
-    await adminPool.end();
+  if (!process.env.VERCEL) {
+    const adminPool = new Pool({ ...poolConfig, database: "postgres" });
+    try {
+      await adminPool.query("CREATE DATABASE sdg_connect");
+    } catch (error) {
+      if (error.code !== "42P04") throw error;
+    } finally {
+      await adminPool.end();
+    }
   }
 
   const schema = fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8");

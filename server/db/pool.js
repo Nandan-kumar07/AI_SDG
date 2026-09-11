@@ -18,12 +18,14 @@ function resolveDatabaseUrl() {
 function parsePoolConfig(connectionString) {
   try {
     const url = new URL(connectionString);
+    const sslMode = url.searchParams.get("sslmode");
     return {
       host: url.hostname || "localhost",
       port: Number(url.port || 5432),
       database: url.pathname.replace(/^\//, "") || "postgres",
       user: decodeURIComponent(url.username || "postgres"),
       password: url.password ? decodeURIComponent(url.password) : "",
+      ...(sslMode === "require" || process.env.VERCEL ? { ssl: { rejectUnauthorized: false } } : {}),
       max: Number(process.env.DB_POOL_MAX || 20),
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000
